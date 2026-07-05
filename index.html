@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOLID Canvas Spreadsheet</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100%;
+            background-color: #f3f3f3;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            display: block;
+            background: #fff;
+        }
+        #cellEditor {
+            position: absolute;
+            display: none;
+            border: 2px solid #0078d4; 
+            font-size: 14px;
+            padding: 0 4px;
+            margin: 0;
+            outline: none;
+            box-sizing: border-box;
+            background: white;
+            font-family: Arial, sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gridCanvas"></canvas>
+    <input type="text" id="cellEditor">
+
+    <script type="module" src="/dist/main.js"></script>
+</body>
+</html>

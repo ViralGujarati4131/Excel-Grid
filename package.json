@@ -7,14 +7,13 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "start": "node"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": ""
 }
-
-
-// "start" : "node dist/hello.js",
-    // "dev":"npx src/hello.js"
