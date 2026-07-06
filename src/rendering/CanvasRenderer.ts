@@ -10,15 +10,18 @@ export class CanvasRenderer implements IRenderer {
         this.ctx = canvas.getContext("2d")!;
     }
 
+    // this return canvas element to draw
     public getCanvasElement(): HTMLCanvasElement {
         return this.canvas;
     }
 
+    // resize function so make canvas side according to the window size
     public resize(width: number, height: number): void {
         this.canvas.width = width;
         this.canvas.height = height;
     }
 
+    // this give the x val to draw the cell
     public getColX(workbook: Workbook, targetIdx: number): number {
         let x = 0;
         for (let i = 0; i < targetIdx; i++) {
@@ -28,6 +31,7 @@ export class CanvasRenderer implements IRenderer {
         return x;
     }
 
+    // this give the val of y to draw the cell
     public getRowY(workbook: Workbook, targetIdx: number): number {
         let y = 0;
         for (let i = 0; i < targetIdx; i++) {
@@ -37,11 +41,13 @@ export class CanvasRenderer implements IRenderer {
         return y;
     }
 
+    // this function will render the header, cells
     public render(workbook: Workbook, viewport: Viewport, selection: SelectionState | null): void {
         const ctx = this.ctx;
         ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         ctx.textBaseline = "middle";
 
+        // calculate the total width and starting column
         let accumulatedW = 0;
         let startCol = 0;
         for (let c = 0; c < workbook.columns.length; c++) {
@@ -52,6 +58,7 @@ export class CanvasRenderer implements IRenderer {
             if (accumulatedW > viewport.scrollX + this.canvas.width) break;
         }
 
+        // calculate the total height and starting row
         let accumulatedH = 0;
         let startRow = 0;
         for (let r = 0; r < workbook.rows.length; r++) {
@@ -62,8 +69,9 @@ export class CanvasRenderer implements IRenderer {
             if (accumulatedH > viewport.scrollY + this.canvas.height) break;
         }
 
+        // calculate the end shell to draw in column and row
         const endCol = Math.min(workbook.columns.length, startCol + Math.ceil(this.canvas.width / 50) + 1);
-        const endRow = Math.min(workbook.rows.length, startRow + Math.ceil(this.canvas.height / 20) + 1);
+        const endRow = Math.min(workbook.rows.length, startRow + Math.ceil(this.canvas.height / 20) + 1);        
 
         this.renderCells(workbook, viewport, startRow, endRow, startCol, endCol, selection);
         this.renderHeaders(workbook, viewport, startRow, endRow, startCol, endCol, selection);
@@ -71,6 +79,7 @@ export class CanvasRenderer implements IRenderer {
         this.renderRangeOuterOutline(workbook, viewport, selection);
     }
 
+    // this method draw the header for the row and column and also high light it if it selected raw | column | range
     private renderHeaders(workbook: Workbook, viewport: Viewport, sR: number, eR: number, sC: number, eC: number, selection: SelectionState | null): void {
         const ctx = this.ctx;
         ctx.strokeStyle = "#b4b4b4";
@@ -79,7 +88,7 @@ export class CanvasRenderer implements IRenderer {
 
         ctx.save();
         ctx.beginPath();
-        ctx.rect(viewport.headerWidth, 0, this.canvas.width - viewport.headerWidth, this.canvas.height);
+        ctx.rect(viewport.headerWidth, 0, this.canvas.width - viewport.headerWidth, viewport.headerHeight);        
         ctx.clip();
 
         for (let c = sC; c < eC; c++) {
@@ -111,7 +120,7 @@ export class CanvasRenderer implements IRenderer {
 
         ctx.save();
         ctx.beginPath();
-        ctx.rect(0, viewport.headerHeight, this.canvas.width, this.canvas.height - viewport.headerHeight);
+        ctx.rect(0, viewport.headerHeight, viewport.headerWidth, this.canvas.height - viewport.headerHeight);
         ctx.clip();
 
         for (let r = sR; r < eR; r++) {
@@ -141,6 +150,7 @@ export class CanvasRenderer implements IRenderer {
         ctx.restore();
     }
 
+    // this is the method to show the cells in row cloumn and selection of cells and show the text of cell
     private renderCells(workbook: Workbook, viewport: Viewport, sR: number, eR: number, sC: number, eC: number, selection: SelectionState | null): void {
         const ctx = this.ctx;
 
@@ -167,6 +177,7 @@ export class CanvasRenderer implements IRenderer {
                 ctx.fillRect(x, y, col.width, row.height);
 
                 if (selection) {
+
                     if (selection.type === "column" && selection.colName === col.name) {
                         ctx.fillStyle = "rgba(0, 120, 212, 0.06)";
                         ctx.fillRect(x, y, col.width, row.height);
@@ -211,6 +222,7 @@ export class CanvasRenderer implements IRenderer {
         ctx.restore();
     }
 
+    // this will draw the selection broder for multi cell selection
     private renderRangeOuterOutline(workbook: Workbook, viewport: Viewport, selection: SelectionState | null): void {
         if (!selection || selection.type !== "range" || selection.startRowIdx === undefined || selection.endRowIdx === undefined || selection.startColIdx === undefined || selection.endColIdx === undefined) return;
 
@@ -259,6 +271,7 @@ export class CanvasRenderer implements IRenderer {
         ctx.restore();
     }
 
+    // this is the corner which is shown at (0,0) between the row & column header
     private renderOriginCorner(viewport: Viewport): void {
         const ctx = this.ctx;
         ctx.fillStyle = "#e6e6e6";

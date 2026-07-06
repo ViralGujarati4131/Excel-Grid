@@ -7,7 +7,8 @@ export class Viewport {
     ) {}
 
     public clamp(maxWidth: number, maxHeight: number, viewWidth: number, viewHeight: number): void {
+        // store the value of scrolling how much we scroll horizontally and vertically
         this.scrollX = Math.max(0, Math.min(this.scrollX, maxWidth - (viewWidth - this.headerWidth)));
-        this.scrollY = Math.max(0, Math.min(this.scrollY, maxHeight - (viewHeight - this.headerHeight)));
+        this.scrollY = Math.max(0, Math.min(this.scrollY, maxHeight - (viewHeight - this.headerHeight)));        
     }
 }

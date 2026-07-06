@@ -36,6 +36,7 @@ export class InteractionHandler {
         this.bindEvents();
     }
 
+    // this will bind all the events in canvas
     private bindEvents(): void {
         const canvas = this.renderer.getCanvasElement();
 
@@ -64,11 +65,13 @@ export class InteractionHandler {
         canvas.addEventListener("wheel", (e) => this.handleScroll(e), { passive: false });
     }
 
+    // this will change the cursor when cursor near the row or column edge
     private checkHoverEdge(x: number, y: number): void {
         const canvas = this.renderer.getCanvasElement();
         const tolerance = 5;
         this.hoverResizeInfo = null;
 
+        // cloumn
         if (y < this.viewport.headerHeight && x > this.viewport.headerWidth) {
             for (let c = 0; c < this.workbook.columns.length; c++) {
                 const edgeX = this.viewport.headerWidth + this.renderer.getColX(this.workbook, c + 1) - this.viewport.scrollX;
@@ -80,6 +83,7 @@ export class InteractionHandler {
             }
         }
 
+        // row
         if (x < this.viewport.headerWidth && y > this.viewport.headerHeight) {
             for (let r = 0; r < this.workbook.rows.length; r++) {
                 const edgeY = this.viewport.headerHeight + this.renderer.getRowY(this.workbook, r + 1) - this.viewport.scrollY;
@@ -91,10 +95,14 @@ export class InteractionHandler {
             }
         }
 
+        // default
         canvas.style.cursor = "default";
     }
 
+    // get row and column id from x and y position
     private getGridIndicesFromMouse(x: number, y: number): { rowIdx: number; colIdx: number } | null {
+
+        // find rowId
         let runningY = this.viewport.headerHeight;
         let rowIdx = -1;
         for (let r = 0; r < this.workbook.rows.length; r++) {
@@ -107,6 +115,7 @@ export class InteractionHandler {
             runningY += row.height;
         }
 
+        // find columnId
         let runningX = this.viewport.headerWidth;
         let colIdx = -1;
         for (let c = 0; c < this.workbook.columns.length; c++) {
@@ -122,12 +131,17 @@ export class InteractionHandler {
         return { rowIdx, colIdx };
     }
 
+    // mouse down mean when we just press the mouse
     private handleMouseDown(e: MouseEvent): void {
         const rect = this.renderer.getCanvasElement().getBoundingClientRect();
+        
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
 
+        // check if mouse down is for resizing 
         if (this.hoverResizeInfo) {
+            
+            // column resize
             if (this.hoverResizeInfo.type === "column") {
                 const col = this.workbook.columns[this.hoverResizeInfo.index];
                 if (col) {
@@ -139,6 +153,7 @@ export class InteractionHandler {
                     };
                 }
             } else {
+                // row resize
                 const row = this.workbook.rows[this.hoverResizeInfo.index];
                 if (row) {
                     this.resizeState = {
@@ -153,6 +168,7 @@ export class InteractionHandler {
             return;
         }
 
+        // if mouse is at left top side than clear selection
         if (x < this.viewport.headerWidth && y < this.viewport.headerHeight) {
             this.selection = null;
             this.editor.hide();
@@ -160,12 +176,14 @@ export class InteractionHandler {
             return;
         }
 
+        // get index or row column for check where mouse is down
         const indices = this.getGridIndicesFromMouse(x, y);
         if (!indices) return;
 
         this.editor.hide();
         this.isSelectingRange = true;
 
+        // is mouse is down for entire cloumn select
         if (y < this.viewport.headerHeight) {
             if (indices.colIdx !== -1) {
                 const col = this.workbook.columns[indices.colIdx];
@@ -186,6 +204,7 @@ export class InteractionHandler {
             return;
         }
 
+        // is mouse is down for entire row select
         if (x < this.viewport.headerWidth) {
             if (indices.rowIdx !== -1) {
                 const row = this.workbook.rows[indices.rowIdx];
@@ -206,6 +225,7 @@ export class InteractionHandler {
             return;
         }
 
+        // is mouse is down for the cell select
         if (indices.rowIdx !== -1 && indices.colIdx !== -1) {
             const row = this.workbook.rows[indices.rowIdx];
             const col = this.workbook.columns[indices.colIdx];
@@ -225,13 +245,15 @@ export class InteractionHandler {
         }
     }
 
+    // this is for show resize icon for row, column and
     private handleMouseMove(e: MouseEvent): void {
         const rect = this.renderer.getCanvasElement().getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
 
+        // move mouse for resize the size of column or row
         if (this.resizeState) {
-            if (this.resizeState.type === "column") {
+            if (this.resizeState.type === "column") {        
                 const deltaX = e.clientX - this.resizeState.startPos;
                 const col = this.workbook.columns[this.resizeState.index];
                 if (col) col.width = Math.max(30, this.resizeState.startSize + deltaX);
@@ -244,16 +266,27 @@ export class InteractionHandler {
             return;
         }
 
+        // move mouse for multi cell selection
         if (this.isSelectingRange && this.selection) {
             const indices = this.getGridIndicesFromMouse(x, y);
+            
             if (indices) {
                 if (this.dragSelectionType === "column" && indices.colIdx !== -1) {
+                    
+                    // when you select mutliple columns or single column while moving
+
                     this.selection.endColIdx = indices.colIdx;
                     this.selection.type = (this.selection.startColIdx === this.selection.endColIdx) ? "column" : "range";
                 } else if (this.dragSelectionType === "row" && indices.rowIdx !== -1) {
+
+                    // when you select multiple rows or single row while moving
+
                     this.selection.endRowIdx = indices.rowIdx;
                     this.selection.type = (this.selection.startRowIdx === this.selection.endRowIdx) ? "row" : "range";
                 } else if (this.dragSelectionType === "cell" && indices.rowIdx !== -1 && indices.colIdx !== -1) {
+
+                    // when you select multiple cells or single cell while moving
+
                     this.selection.endRowIdx = indices.rowIdx;
                     this.selection.endColIdx = indices.colIdx;
                     this.selection.type = (this.selection.startRowIdx === this.selection.endRowIdx && this.selection.startColIdx === this.selection.endColIdx) ? "cell" : "range";
@@ -263,30 +296,44 @@ export class InteractionHandler {
             return;
         }
 
+        // change cursor type if near to row or column header edge for resize other wise default
         this.checkHoverEdge(x, y);
     }
 
-    private handleMouseUp(): void {
+    
+    private handleMouseUp(): void {        
+
+        // clear the resize state resize complete and mouse up
         this.resizeState = null;
+
+        // clear the isSelectingRange variable after complete selection and mouse up
         this.isSelectingRange = false;
     }
 
+    // this is to handle double click event
     private handleDoubleClick(e: MouseEvent): void {
+
+        // if nothing is selection and double click or if row or cloumn select and double click than return
         if (!this.selection || this.selection.type !== "cell") return;
         
         const rect = this.renderer.getCanvasElement().getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
 
-        if (x < this.viewport.headerWidth || y < this.viewport.headerHeight) return;
+        // if (x < this.viewport.headerWidth || y < this.viewport.headerHeight) return;
 
+
+        // get row and column
         const colIndex = this.workbook.columns.findIndex(c => c.name === this.selection!.colName);
         const rowIndex = this.workbook.rows.findIndex(r => r.id === this.selection!.rowId);
         const row = this.workbook.rows[rowIndex];
         const col = this.workbook.columns[colIndex];
 
         if (row && col) {
+            
+            // get cell
             const cell = this.workbook.getCell(row.id, col.name);
+            
             if (cell) {
                 const cellX = rect.left + this.viewport.headerWidth + this.renderer.getColX(this.workbook, colIndex) - this.viewport.scrollX;
                 const cellY = rect.top + this.viewport.headerHeight + this.renderer.getRowY(this.workbook, rowIndex) - this.viewport.scrollY;
@@ -453,12 +500,14 @@ export class InteractionHandler {
         const canvasElement = this.renderer.getCanvasElement();
         const triggerThresholdPixels = 300;
 
+        // add the row dynamically when near to reach at end of the scroll
         if ((this.viewport.scrollY + canvasElement.height) > (currentWorkbookHeight - triggerThresholdPixels)) {
             this.workbook.expandRows(100);
             currentWorkbookHeight = 0;
             for (const row of this.workbook.rows) currentWorkbookHeight += row.height;
         }
 
+        // add the column dynamically when near to reach at end of the scroll
         if ((this.viewport.scrollX + canvasElement.width) > (currentWorkbookWidth - triggerThresholdPixels)) {
             this.workbook.expandColumns(30);
             currentWorkbookWidth = 0;

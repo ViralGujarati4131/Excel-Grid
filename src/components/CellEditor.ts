@@ -5,6 +5,7 @@ export class CellEditor {
         this.hide();
     }
 
+    // this show the input box when user try to write in cell
     public show(cell: Cell, x: number, y: number, width: number, height: number, mode: "override" | "append"): void {
         this.element.style.left = `${x}px`;
         this.element.style.top = `${y}px`;
@@ -21,18 +22,22 @@ export class CellEditor {
         this.element.focus();
     }
 
+    // normally its hidden when user type that time only it will show
     public hide(): void {
         this.element.style.display = "none";
     }
 
+    // get the value of input field
     public getValue(): string {
         return this.element.value;
     }
 
+    // set the value of input field
     public setValue(val: string): void {
         this.element.value = val;
     }
 
+    // get the input element
     public getElement(): HTMLInputElement {
         return this.element;
     }

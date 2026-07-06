@@ -12,13 +12,25 @@ window.addEventListener("DOMContentLoaded", () => {
         throw new Error("Required DOM Elements are missing.");
     }
 
+    // create the initial stage row, column and cells
     const workbook = new Workbook(100, 60);
+
+    // set the scrollX, scrollY value at initial
     const viewport = new Viewport();
+
+    // this the class where the header for row, column and cells or selection cell all things are set
     const renderer = new CanvasRenderer(canvas);
+
+    // this used when we want to show the input box on cell, also for hide it at initial stage 
+    // and get set the val of that perticular cell
     const editor = new CellEditor(editorInput);
 
+    // here we add the core functionality of grid
     new InteractionHandler(workbook, viewport, renderer, editor);
 
+    // resize use to set the rendering size according to the size of window
     renderer.resize(window.innerWidth, window.innerHeight);
+
+    // this will render the entire grid
     renderer.render(workbook, viewport, null);
 });
