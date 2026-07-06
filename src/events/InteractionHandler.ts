@@ -27,6 +27,13 @@ export class InteractionHandler {
     private isSelectingRange = false;
     private dragSelectionType: "cell" | "row" | "column" = "cell";
 
+    private domStatusBar = document.getElementById("statusBar");
+    private domStatCount = document.getElementById("statCount");
+    private domStatSum = document.getElementById("statSum");
+    private domStatAvg = document.getElementById("statAvg");
+    private domStatMin = document.getElementById("statMin");
+    private domStatMax = document.getElementById("statMax");
+
     constructor(
         private workbook: Workbook,
         private viewport: Viewport,
@@ -180,7 +187,7 @@ export class InteractionHandler {
         const indices = this.getGridIndicesFromMouse(x, y);
         if (!indices) return;
 
-        this.editor.hide();
+        this.editor.getElement().blur();
         this.isSelectingRange = true;
 
         // is mouse is down for entire cloumn select
@@ -344,7 +351,8 @@ export class InteractionHandler {
 
     private handleGlobalKeyDown(e: KeyboardEvent): void {
         if (this.editor.getElement().style.display !== "none") return;
-
+        
+        // cell or range selection that time can use the arrow key or enter to move
         if (this.selection && (this.selection.type === "cell" || this.selection.type === "range")) {
             let rowDelta = 0;
             let colDelta = 0;
@@ -373,6 +381,7 @@ export class InteractionHandler {
                     break;
             }
 
+            // move the selection
             if (targetActionTriggered) {
                 this.moveSelection(rowDelta, colDelta);
                 e.preventDefault();
@@ -380,7 +389,7 @@ export class InteractionHandler {
             }
         }
 
-       
+       // render the inputBox on cell
         if (this.selection && this.selection.type === "cell" && e.key.length === 1) {
             const colIndex = this.workbook.columns.findIndex(c => c.name === this.selection!.colName);
             const rowIndex = this.workbook.rows.findIndex(r => r.id === this.selection!.rowId);
@@ -406,23 +415,28 @@ export class InteractionHandler {
 
   
     private moveSelection(rowDelta: number, colDelta: number): void {
+        // if nothing is selection return
         if (!this.selection || this.selection.startRowIdx === undefined || this.selection.startColIdx === undefined) return;
-
       
+        // set new row column id
         let newRowIdx = this.selection.startRowIdx + rowDelta;
         let newColIdx = this.selection.startColIdx + colDelta;
 
+        // after move if it come near to end at scroll expand row
         if (newRowIdx >= this.workbook.rows.length - 5) {
             this.workbook.expandRows(50);
         }
       
+        // after move if it come near to end at scroll expand column
         if (newColIdx >= this.workbook.columns.length - 3) {
             this.workbook.expandColumns(10);
         }
 
+        // to handle minus index condition
         newRowIdx = Math.max(0, Math.min(newRowIdx, this.workbook.rows.length - 1));
         newColIdx = Math.max(0, Math.min(newColIdx, this.workbook.columns.length - 1));
 
+        // new row col of cell
         const row = this.workbook.rows[newRowIdx];
         const col = this.workbook.columns[newColIdx];
 
@@ -437,6 +451,7 @@ export class InteractionHandler {
                 endColIdx: newColIdx
             };
 
+            // make view port visible if cell selection go out of visible boundry
             this.adjustViewportToCell(newRowIdx, newColIdx);
             this.updateView();
         }
@@ -457,14 +472,18 @@ export class InteractionHandler {
         const viewHeight = canvas.height - this.viewport.headerHeight;
 
         if (cellLeft < this.viewport.scrollX) {
+            // after move if left side is cutting than scroll that much right side
             this.viewport.scrollX = cellLeft;
         } else if (cellRight > this.viewport.scrollX + viewWidth) {
+            // after move if right side is cuttinh than scroll that much left side
             this.viewport.scrollX = cellRight - viewWidth;
         }
 
         if (cellTop < this.viewport.scrollY) {
+            // after move if top is cutting than scroll that much below side
             this.viewport.scrollY = cellTop;
         } else if (cellBottom > this.viewport.scrollY + viewHeight) {
+            // after move if bottom is cutting than scroll that much top side
             this.viewport.scrollY = cellBottom - viewHeight;
         }
 
@@ -476,6 +495,7 @@ export class InteractionHandler {
         this.viewport.clamp(totalW, totalH, canvas.width, canvas.height);
     }
 
+    // this is use to save the input value
     private saveEditorContent(): void {
         if (this.selection && this.selection.type === "cell" && this.selection.rowId && this.selection.colName) {
             const cell = this.workbook.getCell(this.selection.rowId, this.selection.colName);
@@ -520,6 +540,57 @@ export class InteractionHandler {
     }
 
     private updateView(): void {
+
+        // if multiple entire row or column selected than if expantion happen to maintain that
+        // row and column selected
+        if (this.selection) {
+            if (this.selection.type === "column" || (this.selection.type === "range" && this.dragSelectionType === "column")) {
+                this.selection.endRowIdx = this.workbook.rows.length - 1;
+            } else if (this.selection.type === "row" || (this.selection.type === "range" && this.dragSelectionType === "row")) {
+               this.selection.endColIdx = this.workbook.columns.length - 1;
+            }   
+        }
+
+        this.updateStatusBarMetrics();
+
         this.renderer.render(this.workbook, this.viewport, this.selection);
+    }
+
+    // show the calculation at bottom tab
+    private updateStatusBarMetrics(): void {
+        if (!this.selection || this.selection.startRowIdx === undefined || this.selection.endRowIdx === undefined || this.selection.startColIdx === undefined || this.selection.endColIdx === undefined) {
+            if (this.domStatusBar) this.domStatusBar.style.display = "none";
+            return;
+        }
+
+        if (this.domStatusBar) this.domStatusBar.style.display = "flex";
+
+        const minR = Math.min(this.selection.startRowIdx, this.selection.endRowIdx);
+        const maxR = Math.max(this.selection.startRowIdx, this.selection.endRowIdx);
+        const minC = Math.min(this.selection.startColIdx, this.selection.endColIdx);
+        const maxC = Math.max(this.selection.startColIdx, this.selection.endColIdx);
+
+        const metrics = this.workbook.calculateMetricsForRange(minR, maxR, minC, maxC);
+
+        if (this.domStatCount) this.domStatCount.textContent = `Count: ${metrics.count}`;
+
+       const numericVisibility = metrics.hasNumeric ? "inline" : "none";
+        
+        if (this.domStatSum) {
+            this.domStatSum.style.display = numericVisibility;
+            this.domStatSum.textContent = `Sum: ${metrics.sum.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+        }
+        if (this.domStatAvg) {
+            this.domStatAvg.style.display = numericVisibility;
+            this.domStatAvg.textContent = `Average: ${metrics.avg.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+        }
+        if (this.domStatMin) {
+            this.domStatMin.style.display = numericVisibility;
+            this.domStatMin.textContent = `Min: ${metrics.min}`;
+        }
+        if (this.domStatMax) {
+            this.domStatMax.style.display = numericVisibility;
+            this.domStatMax.textContent = `Max: ${metrics.max}`;
+        }
     }
 }   

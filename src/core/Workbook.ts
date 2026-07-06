@@ -91,4 +91,45 @@ export class Workbook {
         }
         return name;
     }
+
+    // calculate the count,min,max,sum and avg
+    public calculateMetricsForRange(minR: number, maxR: number, minC: number, maxC: number) {
+        let count = 0;
+        let sum = 0;
+        let numericCount = 0;
+        let min = Infinity;
+        let max = -Infinity;
+
+        for (let r = minR; r <= maxR; r++) {
+            const row = this.rows[r];
+            if (!row) continue;
+
+            for (let c = minC; c <= maxC; c++) {
+                const col = this.columns[c];
+                if (!col) continue;
+
+                const cell = this.getCell(row.id, col.name);
+                if (!cell || !cell.text.trim()) continue;
+
+                count++;
+                
+                const numericValue = parseFloat(cell.text);
+                if (!isNaN(numericValue)) {
+                    numericCount++;
+                    sum += numericValue;
+                    if (numericValue < min) min = numericValue;
+                    if (numericValue > max) max = numericValue;
+                }
+            }
+        }
+
+        return {
+            count,
+            hasNumeric: numericCount > 0,
+            sum: sum,
+            avg: numericCount > 0 ? (sum / numericCount) : 0,
+            min: min === Infinity ? 0 : min,
+            max: max === -Infinity ? 0 : max
+        };
+    }
 }
