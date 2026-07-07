@@ -2,6 +2,12 @@ import type { CanvasRenderer } from "../rendering/CanvasRenderer.js";
 import { Workbook } from "../core/Workbook.js";
 import { Viewport } from "../rendering/Viewport.js";
 import { CellEditor } from "../components/CellEditor.js";
+import { CommandHistory } from "../commands/CommandHistory.js";
+import { WriteTextCommand } from "../commands/concrete/WriteTextCommand.js";
+import { ResizeColumnCommand } from "../commands/concrete/ResizeColumnCommand.js";
+import { ResizeRowCommand } from "../commands/concrete/ResizeRowCommand.js";
+import { HeaderResizeManager } from "./HeaderResizeManager.js";
+import { RangeSelectionManager } from "./RangeSelectionManager.js";
 
 export interface SelectionState {
     type: "cell" | "row" | "column" | "range";
@@ -26,6 +32,9 @@ export class InteractionHandler {
     private hoverResizeInfo: { type: "row" | "column"; index: number } | null = null;
     private isSelectingRange = false;
     private dragSelectionType: "cell" | "row" | "column" = "cell";
+
+    private history = new CommandHistory();
+    private resizeManager = new HeaderResizeManager();
 
     private domRibbonMetrics = document.getElementById("ribbonMetrics");
     private domStatCount = document.getElementById("statCount");
@@ -79,40 +88,6 @@ export class InteractionHandler {
             this.domFileInput.addEventListener("change", (e) => this.handleCustomJsonUpload(e));
         }
 
-    }
-
-    // this will change the cursor when cursor near the row or column edge
-    private checkHoverEdge(x: number, y: number): void {
-        const canvas = this.renderer.getCanvasElement();
-        const tolerance = 5;
-        this.hoverResizeInfo = null;
-
-        // cloumn
-        if (y < this.viewport.headerHeight && x > this.viewport.headerWidth) {
-            for (let c = 0; c < this.workbook.columns.length; c++) {
-                const edgeX = this.viewport.headerWidth + this.renderer.getColX(this.workbook, c + 1) - this.viewport.scrollX;
-                if (Math.abs(x - edgeX) <= tolerance) {
-                    canvas.style.cursor = "col-resize";
-                    this.hoverResizeInfo = { type: "column", index: c };
-                    return;
-                }
-            }
-        }
-
-        // row
-        if (x < this.viewport.headerWidth && y > this.viewport.headerHeight) {
-            for (let r = 0; r < this.workbook.rows.length; r++) {
-                const edgeY = this.viewport.headerHeight + this.renderer.getRowY(this.workbook, r + 1) - this.viewport.scrollY;
-                if (Math.abs(y - edgeY) <= tolerance) {
-                    canvas.style.cursor = "row-resize";
-                    this.hoverResizeInfo = { type: "row", index: r };
-                    return;
-                }
-            }
-        }
-
-        // default
-        canvas.style.cursor = "default";
     }
 
     // get row and column id from x and y position
@@ -313,11 +288,33 @@ export class InteractionHandler {
         }
 
         // change cursor type if near to row or column header edge for resize other wise default
-        this.checkHoverEdge(x, y);
+        this.hoverResizeInfo = this.resizeManager.checkHoverEdge(
+            x, y, this.workbook, this.viewport, this.renderer, this.renderer.getCanvasElement()
+        );
     }
 
     
-    private handleMouseUp(): void {        
+    private handleMouseUp(): void {   
+        
+        // if row column resized happen than store that value command and put it to history undo array
+        if (this.resizeState) {
+            
+            // column resize
+            if (this.resizeState.type === "column") {
+                const col = this.workbook.columns[this.resizeState.index];
+                if (col && col.width !== this.resizeState.startSize) {
+                    const cmd = new ResizeColumnCommand(col, col.width, this.resizeState.startSize);
+                    this.history.add(cmd);
+                }
+            } else {
+                // row resize
+                const row = this.workbook.rows[this.resizeState.index];
+                if (row && row.height !== this.resizeState.startSize) {
+                    const cmd = new ResizeRowCommand(row, row.height, this.resizeState.startSize);
+                    this.history.add(cmd);
+                }
+            }
+        }
 
         // clear the resize state resize complete and mouse up
         this.resizeState = null;
@@ -359,40 +356,87 @@ export class InteractionHandler {
     }
 
     private handleGlobalKeyDown(e: KeyboardEvent): void {
+
+        // undo the written text and move selection of cell accordingly
+        // column or row resize undo
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+            const lastCommand = (this.history as any).undoStack?.[(this.history as any).undoStack.length - 1];
+            if (this.history.undo()) {
+                if (lastCommand && lastCommand instanceof WriteTextCommand) {
+                    const row = this.workbook.rows[lastCommand.rowIdx];
+                    const col = this.workbook.columns[lastCommand.colIdx];
+                    if (row && col) {
+                        this.selection = {
+                            type: "cell",
+                            rowId: row.id,
+                            colName: col.name,
+                            startRowIdx: lastCommand.rowIdx,
+                            startColIdx: lastCommand.colIdx,
+                            endRowIdx: lastCommand.rowIdx,
+                            endColIdx: lastCommand.colIdx
+                        };
+                        this.adjustViewportToCell(lastCommand.rowIdx, lastCommand.colIdx);
+                    }
+                }
+                this.updateView();
+            }
+            e.preventDefault();
+            return;
+        }
+
+        // redo the erase text and move selection cell accordingly
+        // redo the column or row resize 
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
+            const nextCommand = (this.history as any).redoStack?.[(this.history as any).redoStack.length - 1];
+            if (this.history.redo()) {
+                if (nextCommand && nextCommand instanceof WriteTextCommand) {
+                    const row = this.workbook.rows[nextCommand.rowIdx];
+                    const col = this.workbook.columns[nextCommand.colIdx];
+                    if (row && col) {
+                        this.selection = {
+                            type: "cell",
+                            rowId: row.id,
+                            colName: col.name,
+                            startRowIdx: nextCommand.rowIdx,
+                            startColIdx: nextCommand.colIdx,
+                            endRowIdx: nextCommand.rowIdx,
+                            endColIdx: nextCommand.colIdx
+                        };
+                        this.adjustViewportToCell(nextCommand.rowIdx, nextCommand.colIdx);
+                    }
+                }
+                this.updateView();
+            }
+            e.preventDefault();
+            return;
+        }
+
         if (this.editor.getElement().style.display !== "none") return;
-        
-        // cell or range selection that time can use the arrow key or enter to move
-        if (this.selection && (this.selection.type === "cell" || this.selection.type === "range")) {
+
+        if (this.selection && (e.key.startsWith("Arrow") || e.key === "Enter")) {
             let rowDelta = 0;
             let colDelta = 0;
-            let targetActionTriggered = false;
+            let isArrowKey = e.key.startsWith("Arrow");
 
             switch (e.key) {
-                case "ArrowUp":
-                    rowDelta = -1;
-                    targetActionTriggered = true;
-                    break;
-                case "ArrowDown":
-                    rowDelta = 1;
-                    targetActionTriggered = true;
-                    break;
-                case "ArrowLeft":
-                    colDelta = -1;
-                    targetActionTriggered = true;
-                    break;
-                case "ArrowRight":
-                    colDelta = 1;
-                    targetActionTriggered = true;
-                    break;
-                case "Enter":
-                    rowDelta = 1; 
-                    targetActionTriggered = true;
-                    break;
+                case "ArrowUp":    rowDelta = -1; break;
+                case "ArrowDown":  rowDelta = 1;  break;
+                case "ArrowLeft":  colDelta = -1; break;
+                case "ArrowRight": colDelta = 1;  break;
+                case "Enter":      rowDelta = 1;  break;
             }
 
-            // move the selection
-            if (targetActionTriggered) {
-                this.moveSelection(rowDelta, colDelta);
+            if (rowDelta !== 0 || colDelta !== 0) {
+                if (isArrowKey && e.shiftKey) {
+                    // Shift + Arrow Keys -> Expand Range Selection Box
+                    this.moveSelectionRangeEnd(rowDelta, colDelta);
+                } else if (isArrowKey && (e.ctrlKey || e.metaKey)) {
+                    // Ctrl + Arrow Keys -> Fast Jump to Data Boundary 
+                    this.jumpToDataBoundary(rowDelta, colDelta);
+                } else {
+                    // Single Arrow cell step movement
+                    this.moveSelection(rowDelta, colDelta);
+                }
                 e.preventDefault();
                 return;
             }
@@ -422,7 +466,125 @@ export class InteractionHandler {
         }
     }
 
+    // multi cell select via shift + -> 
+    private moveSelectionRangeEnd(rowDelta: number, colDelta: number): void {
+        if (!this.selection || this.selection.startRowIdx === undefined || this.selection.startColIdx === undefined || this.selection.endRowIdx === undefined || this.selection.endColIdx === undefined) return;
+
+        let newEndRowIdx = this.selection.endRowIdx + rowDelta;
+        let newEndColIdx = this.selection.endColIdx + colDelta;
+
+        // if near to end row or column expand row and column
+        if (newEndRowIdx >= this.workbook.rows.length - 5) this.workbook.expandRows(50);
+        if (newEndColIdx >= this.workbook.columns.length - 3) this.workbook.expandColumns(10);
+
+        // handle the minus case 
+        newEndRowIdx = Math.max(0, Math.min(newEndRowIdx, this.workbook.rows.length - 1));
+        newEndColIdx = Math.max(0, Math.min(newEndColIdx, this.workbook.columns.length - 1));
+
+        this.selection.endRowIdx = newEndRowIdx;
+        this.selection.endColIdx = newEndColIdx;
+
+        if (this.selection.startRowIdx === this.selection.endRowIdx && this.selection.startColIdx === this.selection.endColIdx) {
+            this.selection.type = "cell";
+        } else {
+            this.selection.type = "range";
+        }
+
+        this.adjustViewportToCell(newEndRowIdx, newEndColIdx);
+        this.updateView();
+    }
+
+    // jump to end to data boundry via ctrl + -> 
+    private jumpToDataBoundary(rowDelta: number, colDelta: number): void {
+        if (!this.selection || this.selection.startRowIdx === undefined || this.selection.startColIdx === undefined) return;
+
+        let currentR = this.selection.startRowIdx;
+        let currentC = this.selection.startColIdx;
+
+        const checkCellFilled = (rIdx: number, cIdx: number): boolean => {
+            const row = this.workbook.rows[rIdx];
+            const col = this.workbook.columns[cIdx];
+            if (!row || !col) return false;
+            const cell = this.workbook.getCell(row.id, col.name);
+            return !!(cell && cell.text.trim().length > 0);
+        };
+
+        let firstNextR = currentR + rowDelta;
+        let firstNextC = currentC + colDelta;
+
+        // if it goes to out of boundry return it
+        if (firstNextR < 0 || firstNextR >= this.workbook.rows.length || firstNextC < 0 || firstNextC >= this.workbook.columns.length) {
+            return;
+        }
+
+        const isCurrentFilled = checkCellFilled(currentR, currentC);
+        const isNextFilled = checkCellFilled(firstNextR, firstNextC);
+
+        let lookForFilled: boolean;
+        
+        if (isCurrentFilled && !isNextFilled) {
+            // if current is empty and next is filled
+            currentR = firstNextR;
+            currentC = firstNextC;
+            lookForFilled = true; 
+        } else if (isCurrentFilled && isNextFilled) {
+            //  if current and next both are empty
+            lookForFilled = false; 
+        } else {
+            // if current is filled
+            lookForFilled = true; 
+        }
+
+        while (true) {
+            let nextR = currentR + rowDelta;
+            let nextC = currentC + colDelta;
+
+            // check until the current limits of workbook
+            if (nextR < 0 || nextR >= this.workbook.rows.length || nextC < 0 || nextC >= this.workbook.columns.length) {
+                break;
+            }
+
+            const nextFilled = checkCellFilled(nextR, nextC);
+
+            if (lookForFilled) {
+                if (nextFilled) {
+                    currentR = nextR;
+                    currentC = nextC;
+                    break;
+                }
+            } else {
+                if (!nextFilled) {
+                    break;
+                }
+            }
+
+            currentR = nextR;
+            currentC = nextC;
+
+            if (rowDelta !== 0 && (currentR === 0 || currentR === this.workbook.rows.length - 1)) break;
+            if (colDelta !== 0 && (currentC === 0 || currentC === this.workbook.columns.length - 1)) break;
+        }
+
+        // apply selection to next filled or last cell in row or column
+        const targetRow = this.workbook.rows[currentR];
+        const targetCol = this.workbook.columns[currentC];
+
+        if (targetRow && targetCol) {
+            this.selection = {
+                type: "cell",
+                rowId: targetRow.id,
+                colName: targetCol.name,
+                startRowIdx: currentR,
+                startColIdx: currentC,
+                endRowIdx: currentR,
+                endColIdx: currentC
+            };
+            this.adjustViewportToCell(currentR, currentC);
+            this.updateView();
+        }
+    }
   
+    // selection set if selection change via  -> 
     private moveSelection(rowDelta: number, colDelta: number): void {
         // if nothing is selection return
         if (!this.selection || this.selection.startRowIdx === undefined || this.selection.startColIdx === undefined) return;
@@ -506,12 +668,29 @@ export class InteractionHandler {
 
     // this is use to save the input value
     private saveEditorContent(): void {
-        if (this.selection && this.selection.type === "cell" && this.selection.rowId && this.selection.colName) {
+        
+
+        if (this.selection && this.selection.type === "cell" && this.selection.rowId && this.selection.colName && this.selection.startRowIdx !== undefined && this.selection.startColIdx !== undefined) {
             const cell = this.workbook.getCell(this.selection.rowId, this.selection.colName);
             if (cell) {
-                cell.text = this.editor.getValue();
+                const oldText = cell.text;
+                const newText = this.editor.getValue();
+                
+                // store the written text as a command for maintain undo redo state
+                if (oldText !== newText) {
+                    const cmd = new WriteTextCommand(
+                        cell, 
+                        newText, 
+                        oldText, 
+                        this.selection.startRowIdx, 
+                        this.selection.startColIdx
+                    );
+                    cmd.execute();
+                    this.history.add(cmd);
+                }
             }
         }
+
         this.editor.hide();
         this.updateView();
     }
@@ -574,12 +753,9 @@ export class InteractionHandler {
 
         if (this.domRibbonMetrics) this.domRibbonMetrics.style.display = "flex";
 
-        const minR = Math.min(this.selection.startRowIdx, this.selection.endRowIdx);
-        const maxR = Math.max(this.selection.startRowIdx, this.selection.endRowIdx);
-        const minC = Math.min(this.selection.startColIdx, this.selection.endColIdx);
-        const maxC = Math.max(this.selection.startColIdx, this.selection.endColIdx);
+        const bounds = RangeSelectionManager.getNormalizedBounds(this.selection);
 
-        const metrics = this.workbook.calculateMetricsForRange(minR, maxR, minC, maxC);
+        const metrics = this.workbook.calculateMetricsForRange(bounds.minR, bounds.maxR, bounds.minC, bounds.maxC);
 
         if (this.domStatCount) this.domStatCount.textContent = `Count: ${metrics.count}`;
 
