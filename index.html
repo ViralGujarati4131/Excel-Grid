@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SOLID Canvas Spreadsheet</title>
     <style>
-        html, body {
+        html,
+        body {
             margin: 0;
             padding: 0;
             overflow: hidden;
@@ -16,14 +18,16 @@
             display: flex;
             flex-direction: column;
         }
+
         canvas {
             display: block;
             background: #fff;
         }
+
         #cellEditor {
             position: absolute;
             display: none;
-            border: 2px solid #0078d4; 
+            border: 2px solid #0078d4;
             font-size: 14px;
             padding: 0 4px;
             margin: 0;
@@ -45,20 +49,7 @@
             user-select: none;
         }
 
-        .ribbon-brand {
-            font-family: Arial, sans-serif;
-            font-size: 14px;
-            font-weight: bold;
-            color: #107c41; /* Excel green */
-        }
-
-        .ribbon-divider {
-            width: 1px;
-            height: 20px;
-            background-color: #ced4da;
-        }
-
-        .ribbon-btn {
+        .ribbonButton {
             background-color: #107c41;
             color: white;
             border: none;
@@ -68,48 +59,91 @@
             font-weight: bold;
             border-radius: 4px;
             cursor: pointer;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             transition: background-color 0.15s;
             display: inline-block;
         }
 
-        .ribbon-btn:hover {
+        .ribbonButton:hover {
             background-color: #0b592e;
         }
 
         #gridCanvas {
-            flex-grow: 1; /* Automatically stretches to fill remaining screen space */
+            flex-grow: 1;
             display: block;
         }
     </style>
 </head>
+
 <body>
     <canvas id="gridCanvas"></canvas>
 
     <input type="text" id="cellEditor">
 
     <div id="excelRibbon">
-        <div class="ribbon-brand">SheetsCanvas Engine</div>
-        <div class="ribbon-divider"></div>
-        <div class="file-upload-wrapper">
-            <label for="jsonFileInput" class="ribbon-btn">
-                📂 Upload Custom JSON File
+
+        <div class="fileUploadWrapper">
+
+            <label for="jsonFileInput" class="ribbonButton">
+                Upload Custom JSON File
             </label>
+
             <input type="file" id="jsonFileInput" accept=".json" style="display: none;" />
+
         </div>
-        <span id="loadingSpinner" style="display: none; color: #107c41; font-family: Arial, sans-serif; font-size: 12px; font-weight: bold;">
-            ⚙️ Ingesting JSON structures into matrix map...
+
+        <span id="loadingSpinner" style="display: none; 
+                color: #107c41; 
+                font-family: Arial, sans-serif; 
+                font-size: 12px; 
+                font-weight: bold;">
+            Loading the file...
         </span>
 
-        <div id="ribbonMetrics" style="display: none; margin-left: auto; gap: 16px; align-items: center; font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; color: #333333;">
-            <span id="statCount" style="background: #e1dfdd; padding: 4px 8px; border-radius: 4px;">Count: 0</span>
-            <span id="statSum" style="background: #dff6dd; color: #107c41; padding: 4px 8px; border-radius: 4px;">Sum: 0</span>
-            <span id="statAvg" style="background: #f3f2f1; padding: 4px 8px; border-radius: 4px;">Avg: 0</span>
-            <span id="statMin" style="background: #f3f2f1; padding: 4px 8px; border-radius: 4px;">Min: 0</span>
-            <span id="statMax" style="background: #f3f2f1; padding: 4px 8px; border-radius: 4px;">Max: 0</span>
+        <div id="ribbonMetrics" style="display: none; 
+                margin-left: auto; 
+                gap: 16px; 
+                align-items: center; 
+                font-family: Arial, sans-serif; 
+                font-size: 12px; 
+                font-weight: bold; 
+                color: #333333;">
+
+            <span id="statCount" style="background: #e1dfdd; 
+                    padding: 4px 8px; 
+                    border-radius: 4px;">
+                Count: 0
+            </span>
+
+            <span id="statSum" style="background: #dff6dd; 
+                    color: #107c41; 
+                    padding: 4px 8px; 
+                    border-radius: 4px;">
+                Sum: 0
+            </span>
+
+            <span id="statAvg" style="background: #f3f2f1; 
+                    padding: 4px 8px; 
+                    border-radius: 4px;">
+                Avg: 0
+            </span>
+
+            <span id="statMin" style="background: #f3f2f1; 
+                    padding: 4px 8px; 
+                    border-radius: 4px;">
+                Min: 0
+            </span>
+
+            <span id="statMax" style="background: #f3f2f1; 
+                    padding: 4px 8px; 
+                    border-radius: 4px;">
+                Max: 0
+            </span>
+
         </div>
     </div>
 
     <script type="module" src="/dist/main.js"></script>
 </body>
+
 </html>

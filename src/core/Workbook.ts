@@ -133,15 +133,10 @@ export class Workbook {
         };
     }
 
-
-    // Replace this method inside the Workbook class in src/core/Workbook.ts
     public loadJsonRecordSet(records: Array<{ id: number; firstName: string; lastName: string; Age: number; Salary: number }>): void {
-        console.time("Ingestion Performance Pass");
-
         const targetRowCount = records.length;
-        const requiredRows = targetRowCount + 1; // Includes 1 row for headers
+        const requiredRows = targetRowCount + 1; 
 
-        // 1. Expand dimensions instantly
         if (this.rows.length < requiredRows) {
             this.expandRows(requiredRows - this.rows.length);
         }
@@ -149,7 +144,6 @@ export class Workbook {
             this.expandColumns(5 - this.columns.length);
         }
 
-        // 2. Cache the first 5 columns to eliminate array lookup unsafety
         const col0 = this.columns[0];
         const col1 = this.columns[1];
         const col2 = this.columns[2];
@@ -161,7 +155,6 @@ export class Workbook {
             return;
         }
 
-        // 3. Populate Column Header Names safely
         const headerNames = ["ID", "First Name", "Last Name", "Age", "Salary"];
         const targetCols = [col0, col1, col2, col3, col4];
         
@@ -179,13 +172,12 @@ export class Workbook {
             }
         }
 
-        // 4. Stream data record sets safely down into storage maps
         for (let i = 0; i < targetRowCount; i++) {
             const record = records[i];
-            if (!record) continue; // Guard against undefined array elements
+            if (!record) continue; 
 
-            const rowId = i + 2; // Offset below headers
-
+            const rowId = i + 2; 
+            
             const cId = this.getCell(rowId, col0.name);
             if (cId) cId.text = record.id.toString();
 
@@ -201,7 +193,5 @@ export class Workbook {
             const cSalary = this.getCell(rowId, col4.name);
             if (cSalary) cSalary.text = record.Salary.toString();
         }
-
-        console.timeEnd("Ingestion Performance Pass");
     }
 }

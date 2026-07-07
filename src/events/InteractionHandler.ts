@@ -51,7 +51,7 @@ export class InteractionHandler {
         const canvas = this.renderer.getCanvasElement();
 
         window.addEventListener("resize", () => {
-            this.renderer.resize(window.innerWidth, window.innerHeight);
+            this.renderer.resize(window.innerWidth, window.innerHeight - 40);
             this.updateView();
         });
 
@@ -589,21 +589,24 @@ export class InteractionHandler {
             this.domStatSum.style.display = numericVisibility;
             this.domStatSum.textContent = `Sum: ${metrics.sum.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
         }
+
         if (this.domStatAvg) {
             this.domStatAvg.style.display = numericVisibility;
             this.domStatAvg.textContent = `Avg: ${metrics.avg.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
         }
+
         if (this.domStatMin) {
             this.domStatMin.style.display = numericVisibility;
             this.domStatMin.textContent = `Min: ${metrics.min}`;
         }
+        
         if (this.domStatMax) {
             this.domStatMax.style.display = numericVisibility;
             this.domStatMax.textContent = `Max: ${metrics.max}`;
         }
     }
 
-
+    // read the data of json file and sentize it
     private handleCustomJsonUpload(e: Event): void {
         const target = e.target as HTMLInputElement;
         const file = target.files ? target.files[0] : null;
@@ -612,15 +615,16 @@ export class InteractionHandler {
         if (this.domSpinner) this.domSpinner.style.display = "inline";
 
         const reader = new FileReader();
+
+        reader.readAsText(file);
+
         reader.onload = (event) => {
             try {
                 const rawText = event.target?.result as string;
                 const parsedData = JSON.parse(rawText);
 
-                // Ensure incoming dataset is parsed safely as a standardized list of objects
                 const finalRecordSet = Array.isArray(parsedData) ? parsedData : [parsedData];
 
-                // Standardize fields map parameters and apply clean fallbacks
                 const sanitizedDataset = finalRecordSet.map((item: any, index: number) => ({
                     id: typeof item.id === "number" ? item.id : (index + 1),
                     firstName: String(item.firstName || item.firstname || "None"),
@@ -629,7 +633,8 @@ export class InteractionHandler {
                     Salary: typeof item.Salary === "number" ? item.Salary : (typeof item.salary === "number" ? item.salary : 0)
                 }));
 
-                // Feed the custom file directly into the workbook core engine mapping structures
+
+                // add data into the cell 
                 this.workbook.loadJsonRecordSet(sanitizedDataset);
                 
                 this.viewport.scrollX = 0;
@@ -640,11 +645,9 @@ export class InteractionHandler {
                 console.error(error);
             } finally {
                 if (this.domSpinner) this.domSpinner.style.display = "none";
-                target.value = ""; // Clear file buffer tracker
+                target.value = ""; 
                 this.updateView();
             }
         };
-
-        reader.readAsText(file);
     }
 }   
