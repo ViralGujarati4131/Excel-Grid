@@ -132,4 +132,76 @@ export class Workbook {
             max: max === -Infinity ? 0 : max
         };
     }
+
+
+    // Replace this method inside the Workbook class in src/core/Workbook.ts
+    public loadJsonRecordSet(records: Array<{ id: number; firstName: string; lastName: string; Age: number; Salary: number }>): void {
+        console.time("Ingestion Performance Pass");
+
+        const targetRowCount = records.length;
+        const requiredRows = targetRowCount + 1; // Includes 1 row for headers
+
+        // 1. Expand dimensions instantly
+        if (this.rows.length < requiredRows) {
+            this.expandRows(requiredRows - this.rows.length);
+        }
+        if (this.columns.length < 5) {
+            this.expandColumns(5 - this.columns.length);
+        }
+
+        // 2. Cache the first 5 columns to eliminate array lookup unsafety
+        const col0 = this.columns[0];
+        const col1 = this.columns[1];
+        const col2 = this.columns[2];
+        const col3 = this.columns[3];
+        const col4 = this.columns[4];
+
+        if (!col0 || !col1 || !col2 || !col3 || !col4) {
+            console.error("Dynamic Engine: Core structural columns allocation failed.");
+            return;
+        }
+
+        // 3. Populate Column Header Names safely
+        const headerNames = ["ID", "First Name", "Last Name", "Age", "Salary"];
+        const targetCols = [col0, col1, col2, col3, col4];
+        
+        for (let c = 0; c < 5; c++) {
+            const currentColumn = targetCols[c];
+            const currentName = headerNames[c];
+            if (currentColumn && currentName) {
+                const cell = this.getCell(1, currentColumn.name);
+                if (cell) {
+                    cell.text = currentName;
+                    cell.style.font = "bold 13px Arial";
+                    cell.style.backgroundColor = "#eaeaea";
+                    cell.style.align = "left";
+                }
+            }
+        }
+
+        // 4. Stream data record sets safely down into storage maps
+        for (let i = 0; i < targetRowCount; i++) {
+            const record = records[i];
+            if (!record) continue; // Guard against undefined array elements
+
+            const rowId = i + 2; // Offset below headers
+
+            const cId = this.getCell(rowId, col0.name);
+            if (cId) cId.text = record.id.toString();
+
+            const cFirst = this.getCell(rowId, col1.name);
+            if (cFirst) cFirst.text = record.firstName;
+
+            const cLast = this.getCell(rowId, col2.name);
+            if (cLast) cLast.text = record.lastName;
+
+            const cAge = this.getCell(rowId, col3.name);
+            if (cAge) cAge.text = record.Age.toString();
+
+            const cSalary = this.getCell(rowId, col4.name);
+            if (cSalary) cSalary.text = record.Salary.toString();
+        }
+
+        console.timeEnd("Ingestion Performance Pass");
+    }
 }

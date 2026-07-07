@@ -27,12 +27,15 @@ export class InteractionHandler {
     private isSelectingRange = false;
     private dragSelectionType: "cell" | "row" | "column" = "cell";
 
-    private domStatusBar = document.getElementById("statusBar");
+    private domRibbonMetrics = document.getElementById("ribbonMetrics");
     private domStatCount = document.getElementById("statCount");
     private domStatSum = document.getElementById("statSum");
     private domStatAvg = document.getElementById("statAvg");
     private domStatMin = document.getElementById("statMin");
     private domStatMax = document.getElementById("statMax");
+
+    private domFileInput = document.getElementById("jsonFileInput") as HTMLInputElement | null;
+    private domSpinner = document.getElementById("loadingSpinner");
 
     constructor(
         private workbook: Workbook,
@@ -70,6 +73,12 @@ export class InteractionHandler {
         });
 
         canvas.addEventListener("wheel", (e) => this.handleScroll(e), { passive: false });
+
+        
+        if (this.domFileInput) {
+            this.domFileInput.addEventListener("change", (e) => this.handleCustomJsonUpload(e));
+        }
+
     }
 
     // this will change the cursor when cursor near the row or column edge
@@ -551,19 +560,19 @@ export class InteractionHandler {
             }   
         }
 
-        this.updateStatusBarMetrics();
+        this.updateRibbonMetrics();
 
         this.renderer.render(this.workbook, this.viewport, this.selection);
     }
 
     // show the calculation at bottom tab
-    private updateStatusBarMetrics(): void {
+    private updateRibbonMetrics(): void {
         if (!this.selection || this.selection.startRowIdx === undefined || this.selection.endRowIdx === undefined || this.selection.startColIdx === undefined || this.selection.endColIdx === undefined) {
-            if (this.domStatusBar) this.domStatusBar.style.display = "none";
+            if (this.domRibbonMetrics) this.domRibbonMetrics.style.display = "none";
             return;
         }
 
-        if (this.domStatusBar) this.domStatusBar.style.display = "flex";
+        if (this.domRibbonMetrics) this.domRibbonMetrics.style.display = "flex";
 
         const minR = Math.min(this.selection.startRowIdx, this.selection.endRowIdx);
         const maxR = Math.max(this.selection.startRowIdx, this.selection.endRowIdx);
@@ -574,7 +583,7 @@ export class InteractionHandler {
 
         if (this.domStatCount) this.domStatCount.textContent = `Count: ${metrics.count}`;
 
-       const numericVisibility = metrics.hasNumeric ? "inline" : "none";
+        const numericVisibility = metrics.hasNumeric ? "inline" : "none";
         
         if (this.domStatSum) {
             this.domStatSum.style.display = numericVisibility;
@@ -582,7 +591,7 @@ export class InteractionHandler {
         }
         if (this.domStatAvg) {
             this.domStatAvg.style.display = numericVisibility;
-            this.domStatAvg.textContent = `Average: ${metrics.avg.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+            this.domStatAvg.textContent = `Avg: ${metrics.avg.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
         }
         if (this.domStatMin) {
             this.domStatMin.style.display = numericVisibility;
@@ -592,5 +601,50 @@ export class InteractionHandler {
             this.domStatMax.style.display = numericVisibility;
             this.domStatMax.textContent = `Max: ${metrics.max}`;
         }
+    }
+
+
+    private handleCustomJsonUpload(e: Event): void {
+        const target = e.target as HTMLInputElement;
+        const file = target.files ? target.files[0] : null;
+        if (!file) return;
+
+        if (this.domSpinner) this.domSpinner.style.display = "inline";
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const rawText = event.target?.result as string;
+                const parsedData = JSON.parse(rawText);
+
+                // Ensure incoming dataset is parsed safely as a standardized list of objects
+                const finalRecordSet = Array.isArray(parsedData) ? parsedData : [parsedData];
+
+                // Standardize fields map parameters and apply clean fallbacks
+                const sanitizedDataset = finalRecordSet.map((item: any, index: number) => ({
+                    id: typeof item.id === "number" ? item.id : (index + 1),
+                    firstName: String(item.firstName || item.firstname || "None"),
+                    lastName: String(item.lastName || item.lastname || "None"),
+                    Age: typeof item.Age === "number" ? item.Age : (typeof item.age === "number" ? item.age : 0),
+                    Salary: typeof item.Salary === "number" ? item.Salary : (typeof item.salary === "number" ? item.salary : 0)
+                }));
+
+                // Feed the custom file directly into the workbook core engine mapping structures
+                this.workbook.loadJsonRecordSet(sanitizedDataset);
+                
+                this.viewport.scrollX = 0;
+                this.viewport.scrollY = 0;
+                
+            } catch (error) {
+                alert("Invalid JSON File Formats. Please verify inner file arrays nodes keys structures layout.");
+                console.error(error);
+            } finally {
+                if (this.domSpinner) this.domSpinner.style.display = "none";
+                target.value = ""; // Clear file buffer tracker
+                this.updateView();
+            }
+        };
+
+        reader.readAsText(file);
     }
 }   

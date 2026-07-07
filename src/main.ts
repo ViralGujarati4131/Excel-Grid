@@ -29,7 +29,7 @@ window.addEventListener("DOMContentLoaded", () => {
     new InteractionHandler(workbook, viewport, renderer, editor);
 
     // resize use to set the rendering size according to the size of window
-    renderer.resize(window.innerWidth, window.innerHeight);
+    renderer.resize(window.innerWidth, window.innerHeight - 40);
 
     // this will render the entire grid
     renderer.render(workbook, viewport, null);
