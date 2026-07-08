@@ -1,7 +1,9 @@
-import type { SelectionState } from "./InteractionHandler.js";
+import type { SelectionState } from "../events/InteractionHandler.js";
 
-export class RangeSelectionManager {
-    public static getNormalizedBounds(selection: SelectionState) {
+export class RangeSelectionManage 
+{
+    public static normalizeSelection(selection: SelectionState) 
+    {
         const startR = selection.startRowIdx ?? 0;
         const endR = selection.endRowIdx ?? 0;
         const startC = selection.startColIdx ?? 0;

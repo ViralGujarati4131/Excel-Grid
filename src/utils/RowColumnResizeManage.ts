@@ -2,7 +2,8 @@ import { Workbook } from "../core/Workbook.js";
 import { Viewport } from "../rendering/Viewport.js";
 import { CanvasRenderer } from "../rendering/CanvasRenderer.js";
 
-export class HeaderResizeManager {
+export class RowColumnResizeManage 
+{
     private tolerance = 5;
 
     // this will change the cursor when cursor near the row or column edge
@@ -13,13 +14,17 @@ export class HeaderResizeManager {
         viewport: Viewport, 
         renderer: CanvasRenderer, 
         canvas: HTMLCanvasElement
-    ): { type: "row" | "column"; index: number } | null {
-        
+    ): { type: "row" | "column"; index: number } | null 
+    {
          // cloumn
-        if (y < viewport.headerHeight && x > viewport.headerWidth) {
-            for (let c = 0; c < workbook.columns.length; c++) {
+        if (y < viewport.headerHeight && x > viewport.headerWidth) 
+        {
+            for (let c = 0; c < workbook.columns.length; c++) 
+            {
                 const edgeX = viewport.headerWidth + renderer.getColX(workbook, c + 1) - viewport.scrollX;
-                if (Math.abs(x - edgeX) <= this.tolerance) {
+
+                if (Math.abs(x - edgeX) <= this.tolerance) 
+                {
                     canvas.style.cursor = "col-resize";
                     return { type: "column", index: c };
                 }
@@ -27,10 +32,14 @@ export class HeaderResizeManager {
         }
 
         // row
-        if (x < viewport.headerWidth && y > viewport.headerHeight) {
-            for (let r = 0; r < workbook.rows.length; r++) {
+        if (x < viewport.headerWidth && y > viewport.headerHeight) 
+        {
+            for (let r = 0; r < workbook.rows.length; r++) 
+            {
                 const edgeY = viewport.headerHeight + renderer.getRowY(workbook, r + 1) - viewport.scrollY;
-                if (Math.abs(y - edgeY) <= this.tolerance) {
+
+                if (Math.abs(y - edgeY) <= this.tolerance) 
+                {
                     canvas.style.cursor = "row-resize";
                     return { type: "row", index: r };
                 }

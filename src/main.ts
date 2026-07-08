@@ -4,11 +4,13 @@ import { CanvasRenderer } from "./rendering/CanvasRenderer.js";
 import { CellEditor } from "./components/CellEditor.js";
 import { InteractionHandler } from "./events/InteractionHandler.js";
 
-window.addEventListener("DOMContentLoaded", () => {
+window.addEventListener("DOMContentLoaded", () => 
+{
     const canvas = document.getElementById("gridCanvas") as HTMLCanvasElement;
     const editorInput = document.getElementById("cellEditor") as HTMLInputElement;
 
-    if (!canvas || !editorInput) {
+    if (!canvas || !editorInput) 
+    {
         throw new Error("Required DOM Elements are missing.");
     }
 

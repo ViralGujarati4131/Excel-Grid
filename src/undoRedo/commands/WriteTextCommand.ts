@@ -1,7 +1,8 @@
 import type { ICommand } from "../ICommand.js";
 import { Cell } from "../../core/Cell.js";
 
-export class WriteTextCommand implements ICommand {
+export class WriteTextCommand implements ICommand 
+{
     constructor(
         private cell: Cell,
         private newValue: string,
@@ -10,11 +11,13 @@ export class WriteTextCommand implements ICommand {
         public readonly colIdx: number
     ) {}
 
-    public execute(): void {
+    public execute(): void 
+    {
         this.cell.text = this.newValue;
     }
 
-    public undo(): void {
+    public undo(): void 
+    {
         this.cell.text = this.oldValue;
     }
 }

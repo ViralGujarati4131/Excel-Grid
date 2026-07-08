@@ -2,14 +2,18 @@ import type { CanvasRenderer } from "../rendering/CanvasRenderer.js";
 import { Workbook } from "../core/Workbook.js";
 import { Viewport } from "../rendering/Viewport.js";
 import { CellEditor } from "../components/CellEditor.js";
-import { CommandHistory } from "../commands/CommandHistory.js";
-import { WriteTextCommand } from "../commands/concrete/WriteTextCommand.js";
-import { ResizeColumnCommand } from "../commands/concrete/ResizeColumnCommand.js";
-import { ResizeRowCommand } from "../commands/concrete/ResizeRowCommand.js";
-import { HeaderResizeManager } from "./HeaderResizeManager.js";
-import { RangeSelectionManager } from "./RangeSelectionManager.js";
+import { CommandHistory } from "../undoRedo/CommandHistory.js";
+import { WriteTextCommand } from "../undoRedo/commands/WriteTextCommand.js";
+import { ResizeColumnCommand } from "../undoRedo/commands/ResizeColumnCommand.js";
+import { ResizeRowCommand } from "../undoRedo/commands/ResizeRowCommand.js";
+import { RowColumnResizeManage } from "../utils/RowColumnResizeManage.js";
+import { getCellByCoordination } from "../utils/GetCellByCoordination.js";
+import { adjustViewportToCell } from "../utils/AdjustViewportToCell.js";
+import { updateRibbonMetrics } from "../utils/UpdateRibbonMetrices.js";
+// import { moveSelection } from "../utils/MoveSelection.js";
 
-export interface SelectionState {
+export interface SelectionState 
+{
     type: "cell" | "row" | "column" | "range";
     rowId: number | null;
     colName: string | null;
@@ -19,14 +23,16 @@ export interface SelectionState {
     endColIdx?: number;
 }
 
-interface ResizeState {
+interface ResizeState 
+{
     type: "row" | "column";
     index: number;
     startPos: number;
     startSize: number;
 }
 
-export class InteractionHandler {
+export class InteractionHandler 
+{
     private selection: SelectionState | null = null;
     private resizeState: ResizeState | null = null;
     private hoverResizeInfo: { type: "row" | "column"; index: number } | null = null;
@@ -34,14 +40,7 @@ export class InteractionHandler {
     private dragSelectionType: "cell" | "row" | "column" = "cell";
 
     private history = new CommandHistory();
-    private resizeManager = new HeaderResizeManager();
-
-    private domRibbonMetrics = document.getElementById("ribbonMetrics");
-    private domStatCount = document.getElementById("statCount");
-    private domStatSum = document.getElementById("statSum");
-    private domStatAvg = document.getElementById("statAvg");
-    private domStatMin = document.getElementById("statMin");
-    private domStatMax = document.getElementById("statMax");
+    private resizeManager = new RowColumnResizeManage();
 
     private domFileInput = document.getElementById("jsonFileInput") as HTMLInputElement | null;
     private domSpinner = document.getElementById("loadingSpinner");
@@ -51,15 +50,18 @@ export class InteractionHandler {
         private viewport: Viewport,
         private renderer: CanvasRenderer,
         private editor: CellEditor
-    ) {
+    ) 
+    {
         this.bindEvents();
     }
 
     // this will bind all the events in canvas
-    private bindEvents(): void {
+    private bindEvents(): void 
+    {
         const canvas = this.renderer.getCanvasElement();
 
-        window.addEventListener("resize", () => {
+        window.addEventListener("resize", () => 
+        {
             this.renderer.resize(window.innerWidth, window.innerHeight - 40);
             this.updateView();
         });
@@ -67,75 +69,47 @@ export class InteractionHandler {
         canvas.addEventListener("mousedown", (e) => this.handleMouseDown(e));
         canvas.addEventListener("mousemove", (e) => this.handleMouseMove(e));
         window.addEventListener("mouseup", () => this.handleMouseUp());
-        
         canvas.addEventListener("dblclick", (e) => this.handleDoubleClick(e));
         window.addEventListener("keydown", (e) => this.handleGlobalKeyDown(e));
-        
         this.editor.getElement().addEventListener("blur", () => this.saveEditorContent());
-        this.editor.getElement().addEventListener("keydown", (e) => {
-            if (e.key === "Enter") {
+
+        this.editor.getElement().addEventListener("keydown", (e) => 
+        {
+            if (e.key === "Enter") 
+            {
                 e.stopPropagation(); 
                 this.editor.getElement().blur();
-                this.moveSelection(1, 0); 
+                this.moveSelection(1,0)
+                // moveSelection(1, 0,this.workbook,this.selection,this.viewport,this.renderer,this.dragSelectionType); 
                 e.preventDefault();
             }
         });
 
         canvas.addEventListener("wheel", (e) => this.handleScroll(e), { passive: false });
 
-        
-        if (this.domFileInput) {
+        if (this.domFileInput) 
+        {
             this.domFileInput.addEventListener("change", (e) => this.handleCustomJsonUpload(e));
         }
-
-    }
-
-    // get row and column id from x and y position
-    private getGridIndicesFromMouse(x: number, y: number): { rowIdx: number; colIdx: number } | null {
-
-        // find rowId
-        let runningY = this.viewport.headerHeight;
-        let rowIdx = -1;
-        for (let r = 0; r < this.workbook.rows.length; r++) {
-            const row = this.workbook.rows[r];
-            if (!row) continue;
-            if (y >= runningY - this.viewport.scrollY && y < runningY + row.height - this.viewport.scrollY) {
-                rowIdx = r;
-                break;
-            }
-            runningY += row.height;
-        }
-
-        // find columnId
-        let runningX = this.viewport.headerWidth;
-        let colIdx = -1;
-        for (let c = 0; c < this.workbook.columns.length; c++) {
-            const col = this.workbook.columns[c];
-            if (!col) continue;
-            if (x >= runningX - this.viewport.scrollX && x < runningX + col.width - this.viewport.scrollX) {
-                colIdx = c;
-                break;
-            }
-            runningX += col.width;
-        }
-
-        return { rowIdx, colIdx };
     }
 
     // mouse down mean when we just press the mouse
-    private handleMouseDown(e: MouseEvent): void {
+    private handleMouseDown(e: MouseEvent): void 
+    {
         const rect = this.renderer.getCanvasElement().getBoundingClientRect();
-        
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
 
         // check if mouse down is for resizing 
-        if (this.hoverResizeInfo) {
+        if (this.hoverResizeInfo) 
+        {
             
             // column resize
-            if (this.hoverResizeInfo.type === "column") {
+            if (this.hoverResizeInfo.type === "column") 
+            {
                 const col = this.workbook.columns[this.hoverResizeInfo.index];
-                if (col) {
+                if (col) 
+                {
                     this.resizeState = {
                         type: "column",
                         index: this.hoverResizeInfo.index,
@@ -143,10 +117,13 @@ export class InteractionHandler {
                         startSize: col.width
                     };
                 }
-            } else {
+            } 
+            else 
+            {
                 // row resize
                 const row = this.workbook.rows[this.hoverResizeInfo.index];
-                if (row) {
+                if (row) 
+                {
                     this.resizeState = {
                         type: "row",
                         index: this.hoverResizeInfo.index,
@@ -160,7 +137,8 @@ export class InteractionHandler {
         }
 
         // if mouse is at left top side than clear selection
-        if (x < this.viewport.headerWidth && y < this.viewport.headerHeight) {
+        if (x < this.viewport.headerWidth && y < this.viewport.headerHeight) 
+        {
             this.selection = null;
             this.editor.hide();
             this.updateView();
@@ -168,17 +146,21 @@ export class InteractionHandler {
         }
 
         // get index or row column for check where mouse is down
-        const indices = this.getGridIndicesFromMouse(x, y);
-        if (!indices) return;
+        const indices = getCellByCoordination(x, y,this.viewport,this.workbook);
+        if (!indices) 
+            return;
 
         this.editor.getElement().blur();
         this.isSelectingRange = true;
 
         // is mouse is down for entire cloumn select
-        if (y < this.viewport.headerHeight) {
-            if (indices.colIdx !== -1) {
+        if (y < this.viewport.headerHeight) 
+        {
+            if (indices.colIdx !== -1) 
+            {
                 const col = this.workbook.columns[indices.colIdx];
-                if (col) {
+                if (col) 
+                {
                     this.dragSelectionType = "column";
                     this.selection = {
                         type: "column",
@@ -196,10 +178,13 @@ export class InteractionHandler {
         }
 
         // is mouse is down for entire row select
-        if (x < this.viewport.headerWidth) {
-            if (indices.rowIdx !== -1) {
+        if (x < this.viewport.headerWidth) 
+        {
+            if (indices.rowIdx !== -1) 
+            {
                 const row = this.workbook.rows[indices.rowIdx];
-                if (row) {
+                if (row) 
+                {
                     this.dragSelectionType = "row";
                     this.selection = {
                         type: "row",
@@ -217,10 +202,12 @@ export class InteractionHandler {
         }
 
         // is mouse is down for the cell select
-        if (indices.rowIdx !== -1 && indices.colIdx !== -1) {
+        if (indices.rowIdx !== -1 && indices.colIdx !== -1) 
+        {
             const row = this.workbook.rows[indices.rowIdx];
             const col = this.workbook.columns[indices.colIdx];
-            if (row && col) {
+            if (row && col) 
+            {
                 this.dragSelectionType = "cell";
                 this.selection = {
                     type: "cell",
@@ -237,47 +224,57 @@ export class InteractionHandler {
     }
 
     // this is for show resize icon for row, column and
-    private handleMouseMove(e: MouseEvent): void {
+    private handleMouseMove(e: MouseEvent): void 
+    {
         const rect = this.renderer.getCanvasElement().getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
 
         // move mouse for resize the size of column or row
-        if (this.resizeState) {
-            if (this.resizeState.type === "column") {        
+        if (this.resizeState) 
+        {
+            if (this.resizeState.type === "column") 
+            {        
                 const deltaX = e.clientX - this.resizeState.startPos;
                 const col = this.workbook.columns[this.resizeState.index];
-                if (col) col.width = Math.max(30, this.resizeState.startSize + deltaX);
-            } else {
+
+                if (col) 
+                    col.width = Math.max(30, this.resizeState.startSize + deltaX);
+            } 
+            else 
+            {
                 const deltaY = e.clientY - this.resizeState.startPos;
                 const row = this.workbook.rows[this.resizeState.index];
-                if (row) row.height = Math.max(15, this.resizeState.startSize + deltaY);
+
+                if (row) 
+                    row.height = Math.max(15, this.resizeState.startSize + deltaY);
             }
             this.updateView();
             return;
         }
 
         // move mouse for multi cell selection
-        if (this.isSelectingRange && this.selection) {
-            const indices = this.getGridIndicesFromMouse(x, y);
+        if (this.isSelectingRange && this.selection) 
+        {
+            const indices = getCellByCoordination(x, y,this.viewport,this.workbook);
             
-            if (indices) {
-                if (this.dragSelectionType === "column" && indices.colIdx !== -1) {
-                    
+            if (indices) 
+            {
+                if (this.dragSelectionType === "column" && indices.colIdx !== -1) 
+                {
                     // when you select mutliple columns or single column while moving
-
                     this.selection.endColIdx = indices.colIdx;
                     this.selection.type = (this.selection.startColIdx === this.selection.endColIdx) ? "column" : "range";
-                } else if (this.dragSelectionType === "row" && indices.rowIdx !== -1) {
-
+                } 
+                else if (this.dragSelectionType === "row" && indices.rowIdx !== -1) 
+                {
                     // when you select multiple rows or single row while moving
-
                     this.selection.endRowIdx = indices.rowIdx;
                     this.selection.type = (this.selection.startRowIdx === this.selection.endRowIdx) ? "row" : "range";
-                } else if (this.dragSelectionType === "cell" && indices.rowIdx !== -1 && indices.colIdx !== -1) {
-
+                } 
+                else if (this.dragSelectionType === "cell" && indices.rowIdx !== -1 && indices.colIdx !== -1) 
+                {
                     // when you select multiple cells or single cell while moving
-
                     this.selection.endRowIdx = indices.rowIdx;
                     this.selection.endColIdx = indices.colIdx;
                     this.selection.type = (this.selection.startRowIdx === this.selection.endRowIdx && this.selection.startColIdx === this.selection.endColIdx) ? "cell" : "range";
@@ -294,22 +291,30 @@ export class InteractionHandler {
     }
 
     
-    private handleMouseUp(): void {   
+    private handleMouseUp(): void 
+    {   
         
         // if row column resized happen than store that value command and put it to history undo array
-        if (this.resizeState) {
-            
+        if (this.resizeState) 
+        {
             // column resize
-            if (this.resizeState.type === "column") {
+            if (this.resizeState.type === "column") 
+            {
                 const col = this.workbook.columns[this.resizeState.index];
-                if (col && col.width !== this.resizeState.startSize) {
+
+                if (col && col.width !== this.resizeState.startSize) 
+                {
                     const cmd = new ResizeColumnCommand(col, col.width, this.resizeState.startSize);
                     this.history.add(cmd);
                 }
-            } else {
+            } 
+            else 
+            {
                 // row resize
                 const row = this.workbook.rows[this.resizeState.index];
-                if (row && row.height !== this.resizeState.startSize) {
+
+                if (row && row.height !== this.resizeState.startSize) 
+                {
                     const cmd = new ResizeRowCommand(row, row.height, this.resizeState.startSize);
                     this.history.add(cmd);
                 }
@@ -324,30 +329,34 @@ export class InteractionHandler {
     }
 
     // this is to handle double click event
-    private handleDoubleClick(e: MouseEvent): void {
+    private handleDoubleClick(e: MouseEvent): void 
+    {
 
         // if nothing is selection and double click or if row or cloumn select and double click than return
-        if (!this.selection || this.selection.type !== "cell") return;
+        if (!this.selection || this.selection.type !== "cell") 
+            return;
         
         const rect = this.renderer.getCanvasElement().getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
 
-        // if (x < this.viewport.headerWidth || y < this.viewport.headerHeight) return;
-
+        if (x < this.viewport.headerWidth || y < this.viewport.headerHeight) return;
 
         // get row and column
+        
         const colIndex = this.workbook.columns.findIndex(c => c.name === this.selection!.colName);
         const rowIndex = this.workbook.rows.findIndex(r => r.id === this.selection!.rowId);
         const row = this.workbook.rows[rowIndex];
         const col = this.workbook.columns[colIndex];
 
-        if (row && col) {
+        if (row && col) 
+        {
             
             // get cell
             const cell = this.workbook.getCell(row.id, col.name);
             
-            if (cell) {
+            if (cell) 
+            {
                 const cellX = rect.left + this.viewport.headerWidth + this.renderer.getColX(this.workbook, colIndex) - this.viewport.scrollX;
                 const cellY = rect.top + this.viewport.headerHeight + this.renderer.getRowY(this.workbook, rowIndex) - this.viewport.scrollY;
                 this.editor.show(cell, cellX, cellY, col.width, row.height, cell.text ? "append" : "override");
@@ -355,17 +364,24 @@ export class InteractionHandler {
         }
     }
 
-    private handleGlobalKeyDown(e: KeyboardEvent): void {
+    private handleGlobalKeyDown(e: KeyboardEvent): void 
+    {
 
         // undo the written text and move selection of cell accordingly
         // column or row resize undo
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+        if ((e.ctrlKey) && e.key.toLowerCase() === "z") 
+        {
             const lastCommand = (this.history as any).undoStack?.[(this.history as any).undoStack.length - 1];
-            if (this.history.undo()) {
-                if (lastCommand && lastCommand instanceof WriteTextCommand) {
+            if (this.history.undo()) 
+            {
+
+                // this is just to move selection with the undo
+                if (lastCommand && lastCommand instanceof WriteTextCommand) 
+                {
                     const row = this.workbook.rows[lastCommand.rowIdx];
                     const col = this.workbook.columns[lastCommand.colIdx];
-                    if (row && col) {
+                    if (row && col) 
+                    {
                         this.selection = {
                             type: "cell",
                             rowId: row.id,
@@ -375,9 +391,11 @@ export class InteractionHandler {
                             endRowIdx: lastCommand.rowIdx,
                             endColIdx: lastCommand.colIdx
                         };
-                        this.adjustViewportToCell(lastCommand.rowIdx, lastCommand.colIdx);
+                        adjustViewportToCell(lastCommand.rowIdx, lastCommand.colIdx,this.renderer,this.workbook,this.viewport);
                     }
                 }
+
+                // update view after the undo
                 this.updateView();
             }
             e.preventDefault();
@@ -386,13 +404,19 @@ export class InteractionHandler {
 
         // redo the erase text and move selection cell accordingly
         // redo the column or row resize 
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
+        if ((e.ctrlKey) && e.key.toLowerCase() === "y") 
+        {
             const nextCommand = (this.history as any).redoStack?.[(this.history as any).redoStack.length - 1];
-            if (this.history.redo()) {
-                if (nextCommand && nextCommand instanceof WriteTextCommand) {
+            if (this.history.redo()) 
+            {
+
+                // this just to move the selection with the redo
+                if (nextCommand && nextCommand instanceof WriteTextCommand) 
+                {
                     const row = this.workbook.rows[nextCommand.rowIdx];
                     const col = this.workbook.columns[nextCommand.colIdx];
-                    if (row && col) {
+                    if (row && col) 
+                    {
                         this.selection = {
                             type: "cell",
                             rowId: row.id,
@@ -402,23 +426,28 @@ export class InteractionHandler {
                             endRowIdx: nextCommand.rowIdx,
                             endColIdx: nextCommand.colIdx
                         };
-                        this.adjustViewportToCell(nextCommand.rowIdx, nextCommand.colIdx);
+                        adjustViewportToCell(nextCommand.rowIdx, nextCommand.colIdx,this.renderer,this.workbook,this.viewport);
                     }
                 }
+
+                // to update the view after redo
                 this.updateView();
             }
             e.preventDefault();
             return;
         }
 
-        if (this.editor.getElement().style.display !== "none") return;
+        if (this.editor.getElement().style.display !== "none") 
+            return;
 
-        if (this.selection && (e.key.startsWith("Arrow") || e.key === "Enter")) {
+        if (this.selection && (e.key.startsWith("Arrow") || e.key === "Enter")) 
+        {
             let rowDelta = 0;
             let colDelta = 0;
             let isArrowKey = e.key.startsWith("Arrow");
 
-            switch (e.key) {
+            switch (e.key) 
+            {
                 case "ArrowUp":    rowDelta = -1; break;
                 case "ArrowDown":  rowDelta = 1;  break;
                 case "ArrowLeft":  colDelta = -1; break;
@@ -426,16 +455,23 @@ export class InteractionHandler {
                 case "Enter":      rowDelta = 1;  break;
             }
 
-            if (rowDelta !== 0 || colDelta !== 0) {
-                if (isArrowKey && e.shiftKey) {
+            if (rowDelta !== 0 || colDelta !== 0) 
+            {
+                if (isArrowKey && e.shiftKey) 
+                {
                     // Shift + Arrow Keys -> Expand Range Selection Box
-                    this.moveSelectionRangeEnd(rowDelta, colDelta);
-                } else if (isArrowKey && (e.ctrlKey || e.metaKey)) {
+                    this.rangeSelectionUsingKey(rowDelta, colDelta);
+                }
+                else if (isArrowKey && (e.ctrlKey)) 
+                {
                     // Ctrl + Arrow Keys -> Fast Jump to Data Boundary 
                     this.jumpToDataBoundary(rowDelta, colDelta);
-                } else {
+                } 
+                else 
+                {
                     // Single Arrow cell step movement
-                    this.moveSelection(rowDelta, colDelta);
+                    this.moveSelection(rowDelta,colDelta);
+                    // moveSelection(rowDelta, colDelta,this.workbook,this.selection,this.viewport,this.renderer,this.dragSelectionType);
                 }
                 e.preventDefault();
                 return;
@@ -443,17 +479,21 @@ export class InteractionHandler {
         }
 
        // render the inputBox on cell
-        if (this.selection && this.selection.type === "cell" && e.key.length === 1) {
+        if (this.selection && this.selection.type === "cell" && e.key.length === 1) 
+        {
             const colIndex = this.workbook.columns.findIndex(c => c.name === this.selection!.colName);
             const rowIndex = this.workbook.rows.findIndex(r => r.id === this.selection!.rowId);
             const canvasRect = this.renderer.getCanvasElement().getBoundingClientRect();
 
-            if (colIndex !== -1 && rowIndex !== -1) {
-                const row = this.workbook.rows[rowIndex];
+            if (colIndex !== -1 && rowIndex !== -1) 
+            {
+                const row = this.workbook.rows[rowIndex];   
                 const col = this.workbook.columns[colIndex];
-                if (row && col) {
+                if (row && col) 
+                {
                     const cell = this.workbook.getCell(row.id, col.name);
-                    if (cell) {
+                    if (cell) 
+                    {
                         const cellX = canvasRect.left + this.viewport.headerWidth + this.renderer.getColX(this.workbook, colIndex) - this.viewport.scrollX;
                         const cellY = canvasRect.top + this.viewport.headerHeight + this.renderer.getRowY(this.workbook, rowIndex) - this.viewport.scrollY;
 
@@ -466,218 +506,21 @@ export class InteractionHandler {
         }
     }
 
-    // multi cell select via shift + -> 
-    private moveSelectionRangeEnd(rowDelta: number, colDelta: number): void {
-        if (!this.selection || this.selection.startRowIdx === undefined || this.selection.startColIdx === undefined || this.selection.endRowIdx === undefined || this.selection.endColIdx === undefined) return;
-
-        let newEndRowIdx = this.selection.endRowIdx + rowDelta;
-        let newEndColIdx = this.selection.endColIdx + colDelta;
-
-        // if near to end row or column expand row and column
-        if (newEndRowIdx >= this.workbook.rows.length - 5) this.workbook.expandRows(50);
-        if (newEndColIdx >= this.workbook.columns.length - 3) this.workbook.expandColumns(10);
-
-        // handle the minus case 
-        newEndRowIdx = Math.max(0, Math.min(newEndRowIdx, this.workbook.rows.length - 1));
-        newEndColIdx = Math.max(0, Math.min(newEndColIdx, this.workbook.columns.length - 1));
-
-        this.selection.endRowIdx = newEndRowIdx;
-        this.selection.endColIdx = newEndColIdx;
-
-        if (this.selection.startRowIdx === this.selection.endRowIdx && this.selection.startColIdx === this.selection.endColIdx) {
-            this.selection.type = "cell";
-        } else {
-            this.selection.type = "range";
-        }
-
-        this.adjustViewportToCell(newEndRowIdx, newEndColIdx);
-        this.updateView();
-    }
-
-    // jump to end to data boundry via ctrl + -> 
-    private jumpToDataBoundary(rowDelta: number, colDelta: number): void {
-        if (!this.selection || this.selection.startRowIdx === undefined || this.selection.startColIdx === undefined) return;
-
-        let currentR = this.selection.startRowIdx;
-        let currentC = this.selection.startColIdx;
-
-        const checkCellFilled = (rIdx: number, cIdx: number): boolean => {
-            const row = this.workbook.rows[rIdx];
-            const col = this.workbook.columns[cIdx];
-            if (!row || !col) return false;
-            const cell = this.workbook.getCell(row.id, col.name);
-            return !!(cell && cell.text.trim().length > 0);
-        };
-
-        let firstNextR = currentR + rowDelta;
-        let firstNextC = currentC + colDelta;
-
-        // if it goes to out of boundry return it
-        if (firstNextR < 0 || firstNextR >= this.workbook.rows.length || firstNextC < 0 || firstNextC >= this.workbook.columns.length) {
-            return;
-        }
-
-        const isCurrentFilled = checkCellFilled(currentR, currentC);
-        const isNextFilled = checkCellFilled(firstNextR, firstNextC);
-
-        let lookForFilled: boolean;
-        
-        if (isCurrentFilled && !isNextFilled) {
-            // if current is empty and next is filled
-            currentR = firstNextR;
-            currentC = firstNextC;
-            lookForFilled = true; 
-        } else if (isCurrentFilled && isNextFilled) {
-            //  if current and next both are empty
-            lookForFilled = false; 
-        } else {
-            // if current is filled
-            lookForFilled = true; 
-        }
-
-        while (true) {
-            let nextR = currentR + rowDelta;
-            let nextC = currentC + colDelta;
-
-            // check until the current limits of workbook
-            if (nextR < 0 || nextR >= this.workbook.rows.length || nextC < 0 || nextC >= this.workbook.columns.length) {
-                break;
-            }
-
-            const nextFilled = checkCellFilled(nextR, nextC);
-
-            if (lookForFilled) {
-                if (nextFilled) {
-                    currentR = nextR;
-                    currentC = nextC;
-                    break;
-                }
-            } else {
-                if (!nextFilled) {
-                    break;
-                }
-            }
-
-            currentR = nextR;
-            currentC = nextC;
-
-            if (rowDelta !== 0 && (currentR === 0 || currentR === this.workbook.rows.length - 1)) break;
-            if (colDelta !== 0 && (currentC === 0 || currentC === this.workbook.columns.length - 1)) break;
-        }
-
-        // apply selection to next filled or last cell in row or column
-        const targetRow = this.workbook.rows[currentR];
-        const targetCol = this.workbook.columns[currentC];
-
-        if (targetRow && targetCol) {
-            this.selection = {
-                type: "cell",
-                rowId: targetRow.id,
-                colName: targetCol.name,
-                startRowIdx: currentR,
-                startColIdx: currentC,
-                endRowIdx: currentR,
-                endColIdx: currentC
-            };
-            this.adjustViewportToCell(currentR, currentC);
-            this.updateView();
-        }
-    }
-  
-    // selection set if selection change via  -> 
-    private moveSelection(rowDelta: number, colDelta: number): void {
-        // if nothing is selection return
-        if (!this.selection || this.selection.startRowIdx === undefined || this.selection.startColIdx === undefined) return;
-      
-        // set new row column id
-        let newRowIdx = this.selection.startRowIdx + rowDelta;
-        let newColIdx = this.selection.startColIdx + colDelta;
-
-        // after move if it come near to end at scroll expand row
-        if (newRowIdx >= this.workbook.rows.length - 5) {
-            this.workbook.expandRows(50);
-        }
-      
-        // after move if it come near to end at scroll expand column
-        if (newColIdx >= this.workbook.columns.length - 3) {
-            this.workbook.expandColumns(10);
-        }
-
-        // to handle minus index condition
-        newRowIdx = Math.max(0, Math.min(newRowIdx, this.workbook.rows.length - 1));
-        newColIdx = Math.max(0, Math.min(newColIdx, this.workbook.columns.length - 1));
-
-        // new row col of cell
-        const row = this.workbook.rows[newRowIdx];
-        const col = this.workbook.columns[newColIdx];
-
-        if (row && col) {
-            this.selection = {
-                type: "cell",
-                rowId: row.id,
-                colName: col.name,
-                startRowIdx: newRowIdx,
-                startColIdx: newColIdx,
-                endRowIdx: newRowIdx,
-                endColIdx: newColIdx
-            };
-
-            // make view port visible if cell selection go out of visible boundry
-            this.adjustViewportToCell(newRowIdx, newColIdx);
-            this.updateView();
-        }
-    }
-
-    private adjustViewportToCell(rowIdx: number, colIdx: number): void {
-        const canvas = this.renderer.getCanvasElement();
-        
-        const cellLeft = this.renderer.getColX(this.workbook, colIdx);
-        const col = this.workbook.columns[colIdx];
-        const cellRight = cellLeft + (col ? col.width : 100);
-
-        const cellTop = this.renderer.getRowY(this.workbook, rowIdx);
-        const row = this.workbook.rows[rowIdx];
-        const cellBottom = cellTop + (row ? row.height : 30);
-
-        const viewWidth = canvas.width - this.viewport.headerWidth;
-        const viewHeight = canvas.height - this.viewport.headerHeight;
-
-        if (cellLeft < this.viewport.scrollX) {
-            // after move if left side is cutting than scroll that much right side
-            this.viewport.scrollX = cellLeft;
-        } else if (cellRight > this.viewport.scrollX + viewWidth) {
-            // after move if right side is cuttinh than scroll that much left side
-            this.viewport.scrollX = cellRight - viewWidth;
-        }
-
-        if (cellTop < this.viewport.scrollY) {
-            // after move if top is cutting than scroll that much below side
-            this.viewport.scrollY = cellTop;
-        } else if (cellBottom > this.viewport.scrollY + viewHeight) {
-            // after move if bottom is cutting than scroll that much top side
-            this.viewport.scrollY = cellBottom - viewHeight;
-        }
-
-        let totalW = 0;
-        for (const c of this.workbook.columns) totalW += c.width;
-        let totalH = 0;
-        for (const r of this.workbook.rows) totalH += r.height;
-
-        this.viewport.clamp(totalW, totalH, canvas.width, canvas.height);
-    }
-
     // this is use to save the input value
-    private saveEditorContent(): void {
+    private saveEditorContent(): void 
+    {
         
-
-        if (this.selection && this.selection.type === "cell" && this.selection.rowId && this.selection.colName && this.selection.startRowIdx !== undefined && this.selection.startColIdx !== undefined) {
+        if (this.selection && this.selection.type === "cell" && this.selection.rowId && this.selection.colName && this.selection.startRowIdx !== undefined && this.selection.startColIdx !== undefined) 
+        {
             const cell = this.workbook.getCell(this.selection.rowId, this.selection.colName);
-            if (cell) {
+            if (cell) 
+            {
                 const oldText = cell.text;
                 const newText = this.editor.getValue();
                 
                 // store the written text as a command for maintain undo redo state
-                if (oldText !== newText) {
+                if (oldText !== newText) 
+                {
                     const cmd = new WriteTextCommand(
                         cell, 
                         newText, 
@@ -695,31 +538,40 @@ export class InteractionHandler {
         this.updateView();
     }
 
-    private handleScroll(e: WheelEvent): void {
+    private handleScroll(e: WheelEvent): void 
+    {
         this.viewport.scrollX += e.deltaX;
         this.viewport.scrollY += e.deltaY;
 
         let currentWorkbookWidth = 0;
-        for (const col of this.workbook.columns) currentWorkbookWidth += col.width;
+        for (const col of this.workbook.columns) 
+            currentWorkbookWidth += col.width;
         
         let currentWorkbookHeight = 0;
-        for (const row of this.workbook.rows) currentWorkbookHeight += row.height;
+        for (const row of this.workbook.rows) 
+            currentWorkbookHeight += row.height;
 
         const canvasElement = this.renderer.getCanvasElement();
         const triggerThresholdPixels = 300;
 
         // add the row dynamically when near to reach at end of the scroll
-        if ((this.viewport.scrollY + canvasElement.height) > (currentWorkbookHeight - triggerThresholdPixels)) {
+        if ((this.viewport.scrollY + canvasElement.height) > (currentWorkbookHeight - triggerThresholdPixels)) 
+        {
             this.workbook.expandRows(100);
             currentWorkbookHeight = 0;
-            for (const row of this.workbook.rows) currentWorkbookHeight += row.height;
+
+            for (const row of this.workbook.rows) 
+                currentWorkbookHeight += row.height;
         }
 
         // add the column dynamically when near to reach at end of the scroll
-        if ((this.viewport.scrollX + canvasElement.width) > (currentWorkbookWidth - triggerThresholdPixels)) {
+        if ((this.viewport.scrollX + canvasElement.width) > (currentWorkbookWidth - triggerThresholdPixels)) 
+        {
             this.workbook.expandColumns(30);
             currentWorkbookWidth = 0;
-            for (const col of this.workbook.columns) currentWorkbookWidth += col.width;
+
+            for (const col of this.workbook.columns) 
+                currentWorkbookWidth += col.width;
         }
 
         this.viewport.clamp(currentWorkbookWidth, currentWorkbookHeight, canvasElement.width, canvasElement.height);
@@ -727,103 +579,289 @@ export class InteractionHandler {
         e.preventDefault();
     }
 
-    private updateView(): void {
-
-        // if multiple entire row or column selected than if expantion happen to maintain that
-        // row and column selected
-        if (this.selection) {
-            if (this.selection.type === "column" || (this.selection.type === "range" && this.dragSelectionType === "column")) {
-                this.selection.endRowIdx = this.workbook.rows.length - 1;
-            } else if (this.selection.type === "row" || (this.selection.type === "range" && this.dragSelectionType === "row")) {
-               this.selection.endColIdx = this.workbook.columns.length - 1;
-            }   
-        }
-
-        this.updateRibbonMetrics();
-
-        this.renderer.render(this.workbook, this.viewport, this.selection);
-    }
-
-    // show the calculation at bottom tab
-    private updateRibbonMetrics(): void {
-        if (!this.selection || this.selection.startRowIdx === undefined || this.selection.endRowIdx === undefined || this.selection.startColIdx === undefined || this.selection.endColIdx === undefined) {
-            if (this.domRibbonMetrics) this.domRibbonMetrics.style.display = "none";
-            return;
-        }
-
-        if (this.domRibbonMetrics) this.domRibbonMetrics.style.display = "flex";
-
-        const bounds = RangeSelectionManager.getNormalizedBounds(this.selection);
-
-        const metrics = this.workbook.calculateMetricsForRange(bounds.minR, bounds.maxR, bounds.minC, bounds.maxC);
-
-        if (this.domStatCount) this.domStatCount.textContent = `Count: ${metrics.count}`;
-
-        const numericVisibility = metrics.hasNumeric ? "inline" : "none";
-        
-        if (this.domStatSum) {
-            this.domStatSum.style.display = numericVisibility;
-            this.domStatSum.textContent = `Sum: ${metrics.sum.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
-        }
-
-        if (this.domStatAvg) {
-            this.domStatAvg.style.display = numericVisibility;
-            this.domStatAvg.textContent = `Avg: ${metrics.avg.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
-        }
-
-        if (this.domStatMin) {
-            this.domStatMin.style.display = numericVisibility;
-            this.domStatMin.textContent = `Min: ${metrics.min}`;
-        }
-        
-        if (this.domStatMax) {
-            this.domStatMax.style.display = numericVisibility;
-            this.domStatMax.textContent = `Max: ${metrics.max}`;
-        }
-    }
-
-    // read the data of json file and sentize it
-    private handleCustomJsonUpload(e: Event): void {
+    // read the data of json file and store it in cells and update view 
+    private handleCustomJsonUpload(e: Event): void 
+    {
         const target = e.target as HTMLInputElement;
         const file = target.files ? target.files[0] : null;
-        if (!file) return;
 
-        if (this.domSpinner) this.domSpinner.style.display = "inline";
+        if (!file) 
+            return;
+
+        if (this.domSpinner) 
+            this.domSpinner.style.display = "inline";
 
         const reader = new FileReader();
 
         reader.readAsText(file);
 
-        reader.onload = (event) => {
+        reader.onload = (event) => 
+        {
             try {
                 const rawText = event.target?.result as string;
                 const parsedData = JSON.parse(rawText);
 
-                const finalRecordSet = Array.isArray(parsedData) ? parsedData : [parsedData];
-
-                const sanitizedDataset = finalRecordSet.map((item: any, index: number) => ({
-                    id: typeof item.id === "number" ? item.id : (index + 1),
-                    firstName: String(item.firstName || item.firstname || "None"),
-                    lastName: String(item.lastName || item.lastname || "None"),
-                    Age: typeof item.Age === "number" ? item.Age : (typeof item.age === "number" ? item.age : 0),
-                    Salary: typeof item.Salary === "number" ? item.Salary : (typeof item.salary === "number" ? item.salary : 0)
-                }));
-
+                const headerName: string[] = [];    
+                headerName.push("id")
+                for(const header in parsedData[0])
+                {
+                    headerName.push(header)
+                }                
+                
+                const finalRecordSet: unknown[] = Array.isArray(parsedData) ? parsedData : [parsedData];                
 
                 // add data into the cell 
-                this.workbook.loadJsonRecordSet(sanitizedDataset);
+                this.workbook.loadJsonRecordSet(finalRecordSet,headerName);
                 
                 this.viewport.scrollX = 0;
                 this.viewport.scrollY = 0;
                 
-            } catch (error) {
+            } 
+            catch (error) 
+            {
                 alert("Invalid JSON File Formats. Please verify inner file arrays nodes keys structures layout.");
                 console.error(error);
-            } finally {
-                if (this.domSpinner) this.domSpinner.style.display = "none";
+            } 
+            finally 
+            {
+                if (this.domSpinner) 
+                    this.domSpinner.style.display = "none";
+
                 target.value = ""; 
                 this.updateView();
             }
         };
+    }
+
+
+
+
+
+    // selection set if selection change via  -> 
+    private moveSelection(rowDelta: number, colDelta: number): void 
+    {
+        // if nothing is selection return
+        if (!this.selection || this.selection.startRowIdx === undefined || this.selection.startColIdx === undefined) 
+            return;
+        
+        // set new row column id
+        let newRowIdx = this.selection.startRowIdx + rowDelta;
+        let newColIdx = this.selection.startColIdx + colDelta;
+
+        // after move if it come near to end at scroll expand row
+        if (newRowIdx >= this.workbook.rows.length - 5) 
+        {
+            this.workbook.expandRows(50);
+        }
+        
+        // after move if it come near to end at scroll expand column
+        if (newColIdx >= this.workbook.columns.length - 3) 
+        {
+            this.workbook.expandColumns(10);
+        }
+
+        // to handle minus index condition
+        newRowIdx = Math.max(0, Math.min(newRowIdx, this.workbook.rows.length - 1));
+        newColIdx = Math.max(0, Math.min(newColIdx, this.workbook.columns.length - 1));
+
+        // new row col of cell
+        const row = this.workbook.rows[newRowIdx];
+        const col = this.workbook.columns[newColIdx];
+
+        if (row && col) 
+        {
+            this.selection = {
+                type: "cell",
+                rowId: row.id,
+                colName: col.name,
+                startRowIdx: newRowIdx,
+                startColIdx: newColIdx,
+                endRowIdx: newRowIdx,
+                endColIdx: newColIdx
+            };
+
+            // make view port visible if cell selection go out of visible boundry
+            adjustViewportToCell(newRowIdx, newColIdx,this.renderer,this.workbook,this.viewport);
+            this.updateView();
+        }
+    }
+
+    // multi cell select via shift + -> 
+    private rangeSelectionUsingKey(rowDelta: number, colDelta: number): void 
+    {
+        if (!this.selection || this.selection.startRowIdx === undefined || this.selection.startColIdx === undefined || this.selection.endRowIdx === undefined || this.selection.endColIdx === undefined) 
+            return;
+
+        let newEndRowIdx = this.selection.endRowIdx + rowDelta;
+        let newEndColIdx = this.selection.endColIdx + colDelta;
+
+        // if near to end row or column expand row and column
+        if (newEndRowIdx >= this.workbook.rows.length - 5) 
+            this.workbook.expandRows(50);
+
+        if (newEndColIdx >= this.workbook.columns.length - 3) 
+            this.workbook.expandColumns(10);
+
+        // handle the minus case 
+        newEndRowIdx = Math.max(0, Math.min(newEndRowIdx, this.workbook.rows.length - 1));
+        newEndColIdx = Math.max(0, Math.min(newEndColIdx, this.workbook.columns.length - 1));
+
+        this.selection.endRowIdx = newEndRowIdx;
+        this.selection.endColIdx = newEndColIdx;
+
+        if (this.selection.startRowIdx === this.selection.endRowIdx && this.selection.startColIdx === this.selection.endColIdx) 
+        {
+            this.selection.type = "cell";
+        } 
+        else 
+        {
+            this.selection.type = "range";  
+        }
+
+        adjustViewportToCell(newEndRowIdx, newEndColIdx,this.renderer,this.workbook,this.viewport);
+        this.updateView();
+    }
+
+    // jump to end to data boundry via ctrl + -> 
+    private jumpToDataBoundary(rowDelta: number, colDelta: number): void 
+    {
+        if (!this.selection || this.selection.startRowIdx === undefined || this.selection.startColIdx === undefined) 
+            return;
+
+        let currentR = this.selection.startRowIdx;
+        let currentC = this.selection.startColIdx;
+
+        const checkCellFilled = (rIdx: number, cIdx: number): boolean => 
+        {
+            const row = this.workbook.rows[rIdx];
+            const col = this.workbook.columns[cIdx];
+
+            if (!row || !col) 
+                return false;
+
+            const cell = this.workbook.getCell(row.id, col.name);
+
+            return Boolean(cell && cell.text.trim().length > 0);
+        };
+
+        let firstNextR = currentR + rowDelta;
+        let firstNextC = currentC + colDelta;
+
+        // if it goes to out of boundry return it
+        if (firstNextR < 0 || firstNextR >= this.workbook.rows.length || firstNextC < 0 || firstNextC >= this.workbook.columns.length)
+            return;
+
+        const isCurrentFilled = checkCellFilled(currentR, currentC);
+        const isNextFilled = checkCellFilled(firstNextR, firstNextC);
+
+        let lookForFilled: boolean;
+        
+        if (isCurrentFilled && !isNextFilled) 
+        {
+            // if current is filled and next is not filled
+            currentR = firstNextR;
+            currentC = firstNextC;
+
+            // cuurent is filled and next is not so we need to continue to find end bound
+            lookForFilled = true; 
+        } 
+        else if (isCurrentFilled && isNextFilled) 
+        {
+            //  if current and next both are filled
+
+            // next is also filled so need to find end bound
+            lookForFilled = false; 
+        } 
+        else 
+        {
+            // if current is not filled
+
+            // look for end bound
+            lookForFilled = true; 
+        }
+
+        while (true) 
+        {
+            let nextR = currentR + rowDelta;
+            let nextC = currentC + colDelta;
+
+            // check until the current limits of workbook
+            if (nextR < 0 || nextR >= this.workbook.rows.length || nextC < 0 || nextC >= this.workbook.columns.length) 
+                break;
+
+            const nextFilled = checkCellFilled(nextR, nextC);
+
+            if (lookForFilled) 
+            {
+                if (nextFilled) 
+                {
+                    currentR = nextR;
+                    currentC = nextC;
+                    break;
+                }
+            } 
+            else 
+            {
+                if (!nextFilled) 
+                {
+                    break;
+                }
+            }
+
+            currentR = nextR;
+            currentC = nextC;
+
+            if (rowDelta !== 0 && (currentR === 0 || currentR === this.workbook.rows.length - 1)) 
+                break;
+            
+            if (colDelta !== 0 && (currentC === 0 || currentC === this.workbook.columns.length - 1)) 
+                break;
+        }
+
+        // apply selection to next filled or last cell in row or column
+        const targetRow = this.workbook.rows[currentR];
+        const targetCol = this.workbook.columns[currentC];
+
+        if (targetRow && targetCol) 
+        {
+            this.selection = {
+                type: "cell",
+                rowId: targetRow.id,
+                colName: targetCol.name,
+                startRowIdx: currentR,
+                startColIdx: currentC,
+                endRowIdx: currentR,
+                endColIdx: currentC
+            };
+            adjustViewportToCell(currentR, currentC,this.renderer,this.workbook,this.viewport);
+            this.updateView();
+        }
+    }
+
+
+
+
+
+
+    // update view after change in view
+    private updateView(): void {
+
+        // if multiple entire row or column selected than if expantion happen to maintain that
+        // row and column selected
+        if (this.selection) 
+        {
+            if (this.selection.type === "column" || (this.selection.type === "range" && this.dragSelectionType === "column")) 
+            {
+                this.selection.endRowIdx = this.workbook.rows.length - 1;
+            } 
+            else if (this.selection.type === "row" || (this.selection.type === "range" && this.dragSelectionType === "row")) 
+            {
+                this.selection.endColIdx = this.workbook.columns.length - 1;
+            }   
+        }
+
+        updateRibbonMetrics(this.selection,this.workbook);
+
+        this.renderer.render(this.workbook, this.viewport, this.selection);
     }
 }   
