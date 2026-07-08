@@ -227,4 +227,20 @@ export class Workbook
             });
         }
     }
+
+    // clear all data
+    public clearAllCellsText(): void {
+    for (const row of this.rows) {
+        for (const col of this.columns) {
+            const cell = this.getCell(row.id, col.name);
+            if (cell) {
+                cell.text = ""; 
+                if (cell.style) {
+                    cell.style.backgroundColor = "#ffffff"; 
+                }
+            }
+        }
+    }
+}
+
 }

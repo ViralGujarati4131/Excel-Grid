@@ -1,0 +1,68 @@
+import { Workbook } from "../core/Workbook.js";
+import { Viewport } from "../rendering/Viewport.js";
+
+export class JsonUploadHandler {
+    constructor(
+        private workbook: Workbook,
+        private viewport: Viewport,
+        private domSpinner: HTMLElement | null,
+        private updateView: () => void
+    ) {}
+
+    // read the data of json file and store it in cells and update view 
+    public handleCustomJsonUpload(e: Event): void 
+    {
+        const target = e.target as HTMLInputElement;
+        const file = target.files ? target.files[0] : null;
+
+        if (!file) 
+            return;
+
+        if (this.domSpinner) 
+            this.domSpinner.style.display = "inline";
+
+        const reader = new FileReader();
+
+        reader.readAsText(file);
+
+        reader.onload = (event) => 
+        {
+            try {
+                const rawText = event.target?.result as string;
+                const parsedData = JSON.parse(rawText);
+
+                // to clear previous data
+                this.workbook.clearAllCellsText();
+
+                const headerName: string[] = [];    
+                headerName.push("id")
+                for(const header in parsedData[0])
+                {
+                    headerName.push(header)
+                }                
+                
+                const finalRecordSet: unknown[] = Array.isArray(parsedData) ? parsedData : [parsedData];                
+
+                // add data into the cell 
+                this.workbook.loadJsonRecordSet(finalRecordSet,headerName);
+                
+                this.viewport.scrollX = 0;
+                this.viewport.scrollY = 0;
+                
+            } 
+            catch (error) 
+            {
+                alert("Invalid JSON File Format. Please verify inner file arrays nodes keys structures layout.");
+                console.error(error);
+            } 
+            finally 
+            {
+                if (this.domSpinner) 
+                    this.domSpinner.style.display = "none";
+
+                target.value = ""; 
+                this.updateView();
+            }
+        };
+    }
+}
