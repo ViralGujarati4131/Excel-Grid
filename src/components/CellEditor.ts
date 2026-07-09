@@ -1,10 +1,44 @@
 import { Cell } from "../core/Cell.js";
+import { CommandHistory } from "../undoRedo/CommandHistory.js";
+import { EditTextCommand } from "../undoRedo/commands/EditTextCommand.js";
 
 export class CellEditor 
 {
+    private localInputHistory = new CommandHistory();
+    private lastValueSnapshot = "";
+    private initialValueBeforeEditing = "";
     constructor(private element: HTMLInputElement) 
     {
         this.hide();
+        this.bindLocalHistoryEvents();
+    }
+
+    private bindLocalHistoryEvents(): void {
+        this.element.addEventListener("input", () => {
+
+            const currentValue = this.element.value;
+            const cmd = new EditTextCommand(this, currentValue, this.lastValueSnapshot);
+            this.localInputHistory.add(cmd);
+            this.lastValueSnapshot = currentValue;
+        });
+
+        this.element.addEventListener("keydown", (e: KeyboardEvent) => {
+            if (e.ctrlKey && e.key.toLowerCase() === "z") {
+                e.stopPropagation(); 
+                e.preventDefault();
+                this.localInputHistory.undo();
+                this.lastValueSnapshot = this.element.value;
+                return;
+            }
+
+            if (e.ctrlKey && e.key.toLowerCase() === "y") {
+                e.stopPropagation(); 
+                e.preventDefault();
+                this.localInputHistory.redo();
+                this.lastValueSnapshot = this.element.value; 
+                return;
+            }
+        });
     }
 
     // this show the input box when user try to write in cell
@@ -25,6 +59,14 @@ export class CellEditor
             this.element.value = cell.text;
         }
         this.element.focus();
+        this.initialValueBeforeEditing = this.element.value;
+        this.localInputHistory = new CommandHistory(); 
+        this.lastValueSnapshot = this.element.value;
+    }
+
+    public getInitialValue(): string 
+    {
+        return this.initialValueBeforeEditing;
     }
 
     // normally its hidden when user type that time only it will show

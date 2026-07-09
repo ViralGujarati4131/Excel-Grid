@@ -155,7 +155,8 @@ export class GridMouseHandler
     // this is for show resize icon for row, column and
     public handleMouseMove(e: MouseEvent, handler: InteractionHandler): void 
     {
-        const rect = this.renderer.getCanvasElement().getBoundingClientRect();
+        const canvas = this.renderer.getCanvasElement();
+        const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
 
@@ -185,6 +186,31 @@ export class GridMouseHandler
          // move mouse for multi cell selection
         if (handler["isSelectingRange"] && handler.selection) 
         {
+
+            if (handler["dragSelectionType"] !== "row" && handler.selection.endColIdx! >= this.workbook.columns.length - 5)
+            {
+                this.workbook.expandColumns(10);
+            }
+
+            if (handler["dragSelectionType"] !== "column" && handler.selection.endRowIdx! >= this.workbook.rows.length - 5)
+            {
+                this.workbook.expandRows(50);
+            }
+
+            const edgeMargin = 40;
+
+            if (x >= canvas.width - edgeMargin) {
+                this.viewport.scrollX += 100;
+            } else if (x <= this.viewport.headerWidth + edgeMargin && this.viewport.scrollX > 0) {
+                this.viewport.scrollX = Math.max(0, this.viewport.scrollX - 100);
+            }
+
+            if (y >= canvas.height - edgeMargin) {
+                this.viewport.scrollY += 30;
+            } else if (y <= this.viewport.headerHeight + edgeMargin && this.viewport.scrollY > 0) {
+                this.viewport.scrollY = Math.max(0, this.viewport.scrollY - 30);
+            }
+
             const indices = getCellByCoordination(x, y, this.viewport, this.workbook);
             if (indices) 
             {

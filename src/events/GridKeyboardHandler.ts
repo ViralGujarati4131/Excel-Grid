@@ -6,7 +6,6 @@ import { CommandHistory } from "../undoRedo/CommandHistory.js";
 import { WriteTextCommand } from "../undoRedo/commands/WriteTextCommand.js";
 import { adjustViewportToCell } from "../utils/AdjustViewportToCell.js";
 import { InteractionHandler } from "./InteractionHandler.js";
-import { EditTextCommand } from "../undoRedo/commands/EditTextCommand.js";
 
 export class GridKeyboardHandler {
     constructor(
@@ -19,6 +18,7 @@ export class GridKeyboardHandler {
 
     public handleGlobalKeyDown(e: KeyboardEvent, handler: InteractionHandler): void 
     {
+
         // to edit the existing text and to edit new cell
         if(e.key === "F2")
         {
@@ -47,23 +47,15 @@ export class GridKeyboardHandler {
         // to cancel the writing in cell and to cancel the editing        
         if(e.key === "Escape")
         {
-            const colIndex = this.workbook.columns.findIndex(c => c.name === handler.selection!.colName);
-            const rowIndex = this.workbook.rows.findIndex(r => r.id === handler.selection!.rowId);
-            const row = this.workbook.rows[rowIndex];   
-            const col = this.workbook.columns[colIndex];
-            if(row && col)
+            if (this.editor.getElement().style.display !== "none") 
             {
-                const cell = this.workbook.getCell(row.id, col.name);
-                if(cell?.text === "")
-                {
-                    this.editor.setValue("");
-                    this.editor.hide();
-                    (handler as any).updateView();
-                }
-                else
-                {
-
-                }
+                const originalText = this.editor.getInitialValue();
+                this.editor.setValue(originalText);
+                this.editor.hide();
+                (handler as any).updateView();
+                
+                e.preventDefault();
+                return;
             }
         }
 
@@ -79,12 +71,6 @@ export class GridKeyboardHandler {
                 {
                     const row = this.workbook.rows[lastCommand.rowIdx];
                     const col = this.workbook.columns[lastCommand.colIdx];
-
-                    // if(row && col && this.editor.getElement().style.display !== "none")
-                    // {
-                    //     const cell = this.workbook.getCell(row.id, col.name);
-                    //     this.editor.setValue(cell!.text);
-                    // }
 
                     if (row && col) 
                     {
@@ -120,12 +106,6 @@ export class GridKeyboardHandler {
                     const row = this.workbook.rows[nextCommand.rowIdx];
                     const col = this.workbook.columns[nextCommand.colIdx];
 
-                    // if(row && col && this.editor.getElement().style.display !== "none")
-                    // {
-                    //     const cell = this.workbook.getCell(row.id, col.name);
-                    //     this.editor.setValue(cell!.text);
-                    // }
-
                     if (row && col) 
                     {
                         handler.selection = {
@@ -149,16 +129,6 @@ export class GridKeyboardHandler {
 
         if(this.editor.getElement().style.display !== "none")
             return;
-
-        // if (this.editor.getElement().style.display !== "none" && !e.ctrlKey && !e.shiftKey && !e.altKey) 
-        // {                        
-        //     let value: string = this.editor.getValue();
-        //     value = value.slice(0,-1);
-        //     const cmd = new EditTextCommand(this.editor,this.editor.getValue(),value); 
-        //     cmd.execute();
-        //     this.history.add(cmd);                        
-        //     return;
-        // }
 
         if (handler.selection && (e.key.startsWith("Arrow") || e.key === "Enter")) 
         {
@@ -237,11 +207,6 @@ export class GridKeyboardHandler {
                         this.editor.show(cell, cellX, cellY, col.width, row.height, "override");
 
                         this.editor.setValue(e.key);
-
-                        // const cmd = new EditTextCommand(this.editor,this.editor.getValue(),""); 
-                        // cmd.execute();
-                        // this.history.add(cmd);  
-
                         e.preventDefault();
                     }
                 }

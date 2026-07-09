@@ -174,12 +174,17 @@ export class CanvasRenderer implements IRenderer
                 {                    
                     ctx.fillStyle = "#107C41";
 
-                    // ctx.beginPath();
-                    // ctx.moveTo(x,viewport.headerHeight);        
-                    // ctx.lineTo(x + col.width, viewport.headerHeight); 
-                    // ctx.strokeStyle = "#107C41";      
-                    // ctx.lineWidth = 3;                 
-                    // ctx.stroke();
+                    if(selection?.rowId != 1)
+                    {
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.moveTo(x, viewport.headerHeight - 2);        
+                        ctx.lineTo(x + col.width, viewport.headerHeight - 2); 
+                        ctx.strokeStyle = "#107C41";      
+                        ctx.lineWidth = 2;                 
+                        ctx.stroke();
+                        ctx.restore();  
+                    }
                 }
             }
             else
@@ -267,12 +272,17 @@ export class CanvasRenderer implements IRenderer
                 {
                     ctx.fillStyle = "#107C41";
 
-                    // ctx.beginPath();
-                    // ctx.moveTo(viewport.headerWidth,y);        
-                    // ctx.lineTo(viewport.headerWidth,y + row.height); 
-                    // ctx.strokeStyle = "#107C41";      
-                    // ctx.lineWidth = 3;                 
-                    // ctx.stroke();
+                    if(selection?.startColIdx != 0)
+                    {
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.moveTo(viewport.headerWidth - 2, y);        
+                        ctx.lineTo(viewport.headerWidth - 2, y + row.height); 
+                        ctx.strokeStyle = "#107C41";      
+                        ctx.lineWidth = 2;                 
+                        ctx.stroke();
+                        ctx.restore();
+                    }
                 }
             }
             else
