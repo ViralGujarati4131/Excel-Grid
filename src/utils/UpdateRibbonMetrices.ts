@@ -27,7 +27,7 @@ export function updateRibbonMetrics(selection: SelectionState | null,workbook: W
     const metrics = workbook.calculateMetricsForRange(bounds.minR, bounds.maxR, bounds.minC, bounds.maxC);
 
     if (domStatCount) 
-        domStatCount.textContent = `Count: ${metrics.count}`;
+        domStatCount.textContent = `Count: ${metrics.numericCount}`;
 
     const numericVisibility = metrics.hasNumeric ? "inline" : "none";
     

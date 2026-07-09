@@ -13,7 +13,7 @@ import { GridWindowHandler } from "./GridWindowHandler.js";
 
 export interface SelectionState 
 {
-    type: "cell" | "row" | "column" | "range";
+    type: "cell" | "row" | "column" | "range" | "rowRange" | "columnRange";
     rowId: number | null;
     colName: string | null;
     startRowIdx?: number;
@@ -59,16 +59,20 @@ export class InteractionHandler
         this.jsonUploadHandler = new JsonUploadHandler(
             this.workbook, this.viewport, this.domSpinner, () => this.updateView()
         );
+
         this.keyboardHandler = new GridKeyboardHandler(
             this.workbook, this.viewport, this.renderer, this.editor, this.history
         );
+
         this.mouseHandler = new GridMouseHandler(
             this.workbook, this.viewport, this.renderer, this.editor, this.history, this.resizeManager,
             () => this.updateView()
         );
+
         this.windowHandler = new GridWindowHandler(
             this.workbook, this.viewport, this.renderer, () => this.updateView()
         );
+
         this.bindEvents();
     }
 
@@ -78,14 +82,11 @@ export class InteractionHandler
         const canvas = this.renderer.getCanvasElement();
 
         window.addEventListener("resize", () => this.windowHandler.handleResize());
-
         canvas.addEventListener("mousedown", (e) => this.mouseHandler.handleMouseDown(e, this));
         canvas.addEventListener("mousemove", (e) => this.mouseHandler.handleMouseMove(e, this));
         canvas.addEventListener("mouseup", () => this.mouseHandler.handleMouseUp(this));
         canvas.addEventListener("dblclick", (e) => this.mouseHandler.handleDoubleClick(e, this.selection));
-        
         window.addEventListener("keydown", (e) => this.keyboardHandler.handleGlobalKeyDown(e, this));
-        
         this.editor.getElement().addEventListener("blur", () => this.saveEditorContent());
 
         this.editor.getElement().addEventListener("keydown", (e) => 
@@ -138,16 +139,15 @@ export class InteractionHandler
         // row and column selected
         if (this.selection) 
         {
-            if (this.selection.type === "column" || (this.selection.type === "range" && this.dragSelectionType === "column")) 
+            if (this.selection.type === "column" || (this.selection.type === "columnRange" && this.dragSelectionType === "column")) 
             {
                 this.selection.endRowIdx = this.workbook.rows.length - 1;
             } 
-            else if (this.selection.type === "row" || (this.selection.type === "range" && this.dragSelectionType === "row")) 
+            else if (this.selection.type === "row" || (this.selection.type === "rowRange" && this.dragSelectionType === "row")) 
             {
                 this.selection.endColIdx = this.workbook.columns.length - 1;
             }   
         }
-
         updateRibbonMetrics(this.selection, this.workbook);
         this.renderer.render(this.workbook, this.viewport, this.selection);
     }

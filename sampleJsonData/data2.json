@@ -1,0 +1,47 @@
+[
+    {
+        "billNo" : "VR101",
+        "category" : "Electric",
+        "product": "Refrigerator",
+        "company": "LG",
+        "price": 37899,
+        "warrenty": "5 year",
+        "paymentMode": "Cash"
+    },
+    {
+        "billNo" : "VR102",
+        "category" : "NonElectric",
+        "product": "Bottle",
+        "company": "Cello",
+        "price": 2499,
+        "warrenty": "2 year",
+        "paymentMode": "Card"
+    },
+    {
+        "billNo" : "VR103",
+        "category" : "Electric",
+        "product": "AC",
+        "company": "Hitachi",
+        "price": 42999,
+        "warrenty": "10 year",
+        "paymentMode": "Cash"
+    },
+    {
+        "billNo" : "VR104",
+        "category" : "PersonalCare",
+        "product": "Hair Dryer & multi styler",
+        "company": "Philips",
+        "price": 11899,
+        "warrenty": " 3 year",
+        "paymentMode": "Cash"
+    },
+    {
+        "billNo" : "VR105",
+        "category" : "Gift",
+        "product": "Photoframe",
+        "company": "Agaro",
+        "price": 599,
+        "warrenty": "No Warrenty",
+        "paymentMode": "UPI"
+    }
+]

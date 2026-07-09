@@ -11,7 +11,7 @@ export interface CellStyle
 }
 
 
-// cell class which is made using row and cloun and cell id also generate from that row & column id's
+// cell class is using row id and cloun id to create cell id and also generate cell from row & column
 export class Cell 
 {
     public readonly id: string;

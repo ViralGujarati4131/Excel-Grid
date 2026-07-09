@@ -6,6 +6,7 @@ import { CommandHistory } from "../undoRedo/CommandHistory.js";
 import { WriteTextCommand } from "../undoRedo/commands/WriteTextCommand.js";
 import { adjustViewportToCell } from "../utils/AdjustViewportToCell.js";
 import { InteractionHandler } from "./InteractionHandler.js";
+import { EditTextCommand } from "../undoRedo/commands/EditTextCommand.js";
 
 export class GridKeyboardHandler {
     constructor(
@@ -16,29 +17,90 @@ export class GridKeyboardHandler {
         private history: CommandHistory
     ) {}
 
-    public handleGlobalKeyDown(e: KeyboardEvent, handler: InteractionHandler): void {
-         // undo the written text and move selection of cell accordingly
+    public handleGlobalKeyDown(e: KeyboardEvent, handler: InteractionHandler): void 
+    {
+        // to edit the existing text and to edit new cell
+        if(e.key === "F2")
+        {
+            if (!handler.selection || handler.selection.type !== "cell") 
+                return;
+
+            // get row and column
+            const colIndex = this.workbook.columns.findIndex(c => c.name === handler.selection!.colName);
+            const rowIndex = this.workbook.rows.findIndex(r => r.id === handler.selection!.rowId);
+            const row = this.workbook.rows[rowIndex];
+            const col = this.workbook.columns[colIndex];
+
+            if (row && col) 
+            {
+                // get cell
+                const cell = this.workbook.getCell(row.id, col.name);
+                if (cell) 
+                {
+                    const cellX = this.viewport.headerWidth + this.renderer.getColX(this.workbook, colIndex) - this.viewport.scrollX;
+                    const cellY = this.viewport.headerHeight + this.renderer.getRowY(this.workbook, rowIndex) - this.viewport.scrollY;
+                    this.editor.show(cell, cellX, cellY, col.width, row.height, cell.text ? "append" : "override");
+                }
+            }
+        }
+
+        // to cancel the writing in cell and to cancel the editing        
+        if(e.key === "Escape")
+        {
+            const colIndex = this.workbook.columns.findIndex(c => c.name === handler.selection!.colName);
+            const rowIndex = this.workbook.rows.findIndex(r => r.id === handler.selection!.rowId);
+            const row = this.workbook.rows[rowIndex];   
+            const col = this.workbook.columns[colIndex];
+            if(row && col)
+            {
+                const cell = this.workbook.getCell(row.id, col.name);
+                if(cell?.text === "")
+                {
+                    this.editor.setValue("");
+                    this.editor.hide();
+                    (handler as any).updateView();
+                }
+                else
+                {
+
+                }
+            }
+        }
+
+        // undo the written text and move selection of cell accordingly
         // column or row resize undo
         if ((e.ctrlKey) && e.key.toLowerCase() === "z") 
         {
-            const lastCommand = (this.history as any).undoStack?.[(this.history as any).undoStack.length - 1];
+            const lastCommand = (this.history as any).undoStack?.[(this.history as any).undoStack.length - 1];           
             if (this.history.undo()) 
             {
-                 // this is just to move selection with the undo
+                // this is just to move selection with the undo
                 if (lastCommand && lastCommand instanceof WriteTextCommand) 
                 {
                     const row = this.workbook.rows[lastCommand.rowIdx];
                     const col = this.workbook.columns[lastCommand.colIdx];
+
+                    // if(row && col && this.editor.getElement().style.display !== "none")
+                    // {
+                    //     const cell = this.workbook.getCell(row.id, col.name);
+                    //     this.editor.setValue(cell!.text);
+                    // }
+
                     if (row && col) 
                     {
                         handler.selection = {
-                            type: "cell", rowId: row.id, colName: col.name,
-                            startRowIdx: lastCommand.rowIdx, startColIdx: lastCommand.colIdx,
-                            endRowIdx: lastCommand.rowIdx, endColIdx: lastCommand.colIdx
+                            type: "cell", 
+                            rowId: row.id, 
+                            colName: col.name,
+                            startRowIdx: lastCommand.rowIdx, 
+                            startColIdx: lastCommand.colIdx,
+                            endRowIdx: lastCommand.rowIdx, 
+                            endColIdx: lastCommand.colIdx
                         };
                         adjustViewportToCell(lastCommand.rowIdx, lastCommand.colIdx, this.renderer, this.workbook, this.viewport);
                     }
                 }
+                // to update the view after undo
                 (handler as any).updateView();
             }
             e.preventDefault();
@@ -57,24 +119,46 @@ export class GridKeyboardHandler {
                 {
                     const row = this.workbook.rows[nextCommand.rowIdx];
                     const col = this.workbook.columns[nextCommand.colIdx];
+
+                    // if(row && col && this.editor.getElement().style.display !== "none")
+                    // {
+                    //     const cell = this.workbook.getCell(row.id, col.name);
+                    //     this.editor.setValue(cell!.text);
+                    // }
+
                     if (row && col) 
                     {
                         handler.selection = {
-                            type: "cell", rowId: row.id, colName: col.name,
-                            startRowIdx: nextCommand.rowIdx, startColIdx: nextCommand.colIdx,
-                            endRowIdx: nextCommand.rowIdx, endColIdx: nextCommand.colIdx
+                            type: "cell", 
+                            rowId: row.id, 
+                            colName: col.name,
+                            startRowIdx: nextCommand.rowIdx, 
+                            startColIdx: nextCommand.colIdx,
+                            endRowIdx: nextCommand.rowIdx, 
+                            endColIdx: nextCommand.colIdx
                         };
                         adjustViewportToCell(nextCommand.rowIdx, nextCommand.colIdx, this.renderer, this.workbook, this.viewport);
                     }
                 }
-                 // to update the view after redo
+                // to update the view after redo
                 (handler as any).updateView();
             }
             e.preventDefault();
             return;
         }
 
-        if (this.editor.getElement().style.display !== "none") return;
+        if(this.editor.getElement().style.display !== "none")
+            return;
+
+        // if (this.editor.getElement().style.display !== "none" && !e.ctrlKey && !e.shiftKey && !e.altKey) 
+        // {                        
+        //     let value: string = this.editor.getValue();
+        //     value = value.slice(0,-1);
+        //     const cmd = new EditTextCommand(this.editor,this.editor.getValue(),value); 
+        //     cmd.execute();
+        //     this.history.add(cmd);                        
+        //     return;
+        // }
 
         if (handler.selection && (e.key.startsWith("Arrow") || e.key === "Enter")) 
         {
@@ -82,20 +166,38 @@ export class GridKeyboardHandler {
             let colDelta = 0;
             let isArrowKey = e.key.startsWith("Arrow");
 
-            switch (e.key) 
-            {
-                case "ArrowUp":    rowDelta = -1; colDelta = 0;  break;
-                case "ArrowDown":  rowDelta = 1;  colDelta = 0;  break;
-                case "ArrowLeft":  rowDelta = 0;  colDelta = -1; break;
-                case "ArrowRight": rowDelta = 0;  colDelta = 1;  break;
-                case "Enter":      rowDelta = 1;  colDelta = 0;  break;
+            switch (e.key) {
+                case "ArrowUp":
+                rowDelta = -1;
+                colDelta = 0;
+                break;
+
+                case "ArrowDown":
+                rowDelta = 1;
+                colDelta = 0;
+                break;
+
+                case "ArrowLeft":
+                rowDelta = 0;
+                colDelta = -1;
+                break;
+
+                case "ArrowRight":
+                rowDelta = 0;
+                colDelta = 1;
+                break;
+                
+                case "Enter":
+                rowDelta = 1;
+                colDelta = 0;
+                break;
             }
 
             if (rowDelta !== 0 || colDelta !== 0) 
             {
                 if (isArrowKey && e.shiftKey) 
                 {
-                     // Shift + Arrow Keys -> Expand Range Selection Box
+                    // Shift + Arrow Keys -> Expand Range Selection Box
                     this.rangeSelectionUsingKey(rowDelta, colDelta, handler);
                 }
                 else if (isArrowKey && (e.ctrlKey)) 
@@ -105,7 +207,7 @@ export class GridKeyboardHandler {
                 } 
                 else 
                 {
-                     // Single Arrow cell step movement
+                    // Single Arrow cell step movement
                     this.moveSelection(rowDelta, colDelta, handler);
                 }
                 e.preventDefault();
@@ -114,7 +216,7 @@ export class GridKeyboardHandler {
         }
 
          // render the inputBox on cell
-        if (handler.selection && handler.selection.type === "cell" && e.key.length === 1) 
+        if (handler.selection && handler.selection.type === "cell" && !e.ctrlKey && e.key.length === 1 ) 
         {
             const colIndex = this.workbook.columns.findIndex(c => c.name === handler.selection!.colName);
             const rowIndex = this.workbook.rows.findIndex(r => r.id === handler.selection!.rowId);
@@ -133,7 +235,13 @@ export class GridKeyboardHandler {
                         const cellY = canvasRect.top + this.viewport.headerHeight + this.renderer.getRowY(this.workbook, rowIndex) - this.viewport.scrollY;
 
                         this.editor.show(cell, cellX, cellY, col.width, row.height, "override");
+
                         this.editor.setValue(e.key);
+
+                        // const cmd = new EditTextCommand(this.editor,this.editor.getValue(),""); 
+                        // cmd.execute();
+                        // this.history.add(cmd);  
+
                         e.preventDefault();
                     }
                 }
@@ -155,7 +263,7 @@ export class GridKeyboardHandler {
         if (newRowIdx >= this.workbook.rows.length - 5) 
             this.workbook.expandRows(50);
 
-         // after move if it come near to end at scroll expand column
+        // after move if it come near to end at scroll expand column
         if (newColIdx >= this.workbook.columns.length - 3) 
             this.workbook.expandColumns(10);
 
@@ -163,7 +271,7 @@ export class GridKeyboardHandler {
         newRowIdx = Math.max(0, Math.min(newRowIdx, this.workbook.rows.length - 1));
         newColIdx = Math.max(0, Math.min(newColIdx, this.workbook.columns.length - 1));
 
-         // new row col of cell
+        // new row col of cell
         const row = this.workbook.rows[newRowIdx];
         const col = this.workbook.columns[newColIdx];
 
@@ -191,12 +299,15 @@ export class GridKeyboardHandler {
         let newEndRowIdx = handler.selection.endRowIdx + rowDelta;
         let newEndColIdx = handler.selection.endColIdx + colDelta;
 
-        // if near to end row or column expand row and column
-        if (newEndRowIdx >= this.workbook.rows.length - 5) 
-            this.workbook.expandRows(50);
+        if(handler.selection.type === "cell" || handler.selection.type === "range")
+        {
+            // if near to end row or column expand row and column
+            if (newEndRowIdx >= this.workbook.rows.length - 5) 
+                this.workbook.expandRows(50);
 
-        if (newEndColIdx >= this.workbook.columns.length - 3) 
-            this.workbook.expandColumns(10);
+            if (newEndColIdx >= this.workbook.columns.length - 3) 
+                this.workbook.expandColumns(10);
+        }
 
         // handle the minus case 
         newEndRowIdx = Math.max(0, Math.min(newEndRowIdx, this.workbook.rows.length - 1));
@@ -204,9 +315,22 @@ export class GridKeyboardHandler {
 
         handler.selection.endRowIdx = newEndRowIdx;
         handler.selection.endColIdx = newEndColIdx;
-        handler.selection.type = (handler.selection.startRowIdx === handler.selection.endRowIdx && handler.selection.startColIdx === handler.selection.endColIdx) ? "cell" : "range";
 
-        adjustViewportToCell(newEndRowIdx, newEndColIdx, this.renderer, this.workbook, this.viewport);
+        if(handler.selection.type === "row" || handler.selection.type === "rowRange")
+        {
+            handler.selection.type = "rowRange"
+            adjustViewportToCell(newEndRowIdx, newEndColIdx, this.renderer, this.workbook, this.viewport);
+        }
+        else if(handler.selection.type === "column" || handler.selection.type === "columnRange")
+        {
+            handler.selection.type = "columnRange"
+            adjustViewportToCell(newEndRowIdx, newEndColIdx, this.renderer, this.workbook, this.viewport);
+        }
+        else
+        {
+            handler.selection.type = (handler.selection.startRowIdx === handler.selection.endRowIdx && handler.selection.startColIdx === handler.selection.endColIdx) ? "cell" : "range";
+            adjustViewportToCell(newEndRowIdx, newEndColIdx, this.renderer, this.workbook, this.viewport);
+        }
         (handler as any).updateView();
     }
 
@@ -222,16 +346,21 @@ export class GridKeyboardHandler {
         const checkCellFilled = (rIdx: number, cIdx: number): boolean => 
         {
             const row = this.workbook.rows[rIdx];
+
             const col = this.workbook.columns[cIdx];
-            if (!row || !col) return false;
+
+            if (!row || !col) 
+                return false;
+
             const cell = this.workbook.getCell(row.id, col.name);
+
             return Boolean(cell && cell.text.trim().length > 0);
         };
 
         let firstNextR = currentR + rowDelta;
         let firstNextC = currentC + colDelta;
 
-         // if it goes to out of boundry return it
+        // if it goes to out of boundry return it
         if (firstNextR < 0 || firstNextR >= this.workbook.rows.length || firstNextC < 0 || firstNextC >= this.workbook.columns.length)
             return;
 
@@ -298,7 +427,7 @@ export class GridKeyboardHandler {
             if (colDelta !== 0 && (currentC === 0 || currentC === this.workbook.columns.length - 1)) break;
         }
 
-         // apply selection to next filled or last cell in row or column
+        // apply selection to last filled or last cell in row or column
         const targetRow = this.workbook.rows[currentR];
         const targetCol = this.workbook.columns[currentC];
 

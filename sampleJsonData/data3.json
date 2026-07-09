@@ -1,0 +1,37 @@
+[
+    {
+        "cutomerName" : "Sanjana",
+        "riderName" : "Tarun",
+        "restaurantName": "Apple bite",
+        "time": "07:30:57 PM",
+        "paymentMode": "COD"
+    },
+    {
+        "cutomerName" : "Harshvi",
+        "riderName" : "Harsh",
+        "restaurantName": "Landscape",
+        "time": "01:45:27 PM",
+        "paymentMode": "ONLINE"
+    },
+    {
+        "cutomerName" : "Yash",
+        "riderName" : "Kashish",
+        "restaurantName": "Bluive",
+        "time": "11:47:37 PM",
+        "paymentMode": "COD"
+    },
+    {
+        "cutomerName" : "Viral",
+        "riderName" : "Yuvraj",
+        "restaurantName": "Imperial",
+        "time": "08:15:45 PM",
+        "paymentMode": "ONLINE"
+    },
+    {
+        "cutomerName" : "Ravi",
+        "riderName" : "Jignesh",
+        "restaurantName": "Sayaji",
+        "time": "09:42:23 PM",
+        "paymentMode": "ONLINE"
+    }
+]

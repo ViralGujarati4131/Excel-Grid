@@ -23,7 +23,6 @@ export class CellEditor
         else 
         {
             this.element.value = cell.text;
-            this.element.setSelectionRange(this.element.value.length, this.element.value.length);
         }
         this.element.focus();
     }

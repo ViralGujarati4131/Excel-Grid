@@ -59,6 +59,8 @@ export class Workbook
     // expand the rows when scroll near to reach at end
     public expandRows(batchSize: number = 50): void 
     {
+        console.log("hi");
+        
         const currentCount = this.rows.length;
 
         if (currentCount >= this.MAX_ROWS) 
@@ -77,6 +79,8 @@ export class Workbook
     // expand the cloumns when scroll near to reach at end
     public expandColumns(batchSize: number = 20): void 
     {
+        console.log("Hello");
+        
         const currentCount = this.columns.length;
 
         if (currentCount >= this.MAX_COLS) 
@@ -163,6 +167,7 @@ export class Workbook
         return {
             count,
             hasNumeric: numericCount > 0,
+            numericCount: numericCount,
             sum: sum,
             avg: numericCount > 0 ? (sum / numericCount) : 0,
             min: min === Infinity ? 0 : min,
@@ -229,18 +234,24 @@ export class Workbook
     }
 
     // clear all data
-    public clearAllCellsText(): void {
-    for (const row of this.rows) {
-        for (const col of this.columns) {
-            const cell = this.getCell(row.id, col.name);
-            if (cell) {
-                cell.text = ""; 
-                if (cell.style) {
-                    cell.style.backgroundColor = "#ffffff"; 
+    public clearAllCellsText(): void 
+    {
+        for (const row of this.rows) 
+        {
+            for (const col of this.columns) 
+            {
+                const cell = this.getCell(row.id, col.name);
+
+                if (cell) 
+                {
+                    cell.text = ""; 
+                    
+                    if (cell.style) 
+                    {
+                        cell.style.backgroundColor = "#ffffff"; 
+                    }
                 }
             }
         }
     }
-}
-
 }
