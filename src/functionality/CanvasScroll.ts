@@ -1,22 +1,18 @@
-import { Workbook } from "../core/Workbook.js";
-import { Viewport } from "../rendering/Viewport.js";
+import type { Workbook } from "../core/Workbook.js";
+import type { InteractionHandler } from "../eventsHandler/InteractionHandler.js";
 import type { CanvasRenderer } from "../rendering/CanvasRenderer.js";
+import type { Viewport } from "../rendering/Viewport.js";
 
-export class GridWindowHandler {
+export class CanvasScroll
+{
     constructor(
-        private workbook: Workbook,
         private viewport: Viewport,
-        private renderer: CanvasRenderer,
+        private workbook: Workbook,
+        private renderer:  CanvasRenderer,
         private updateView: () => void
-    ) {}
+    ){}
 
-    public handleResize(): void 
-    {
-        this.renderer.resize(window.innerWidth, window.innerHeight - 40);
-        this.updateView();
-    }
-
-    public handleScroll(e: WheelEvent): void 
+    public handleCanvasScroll(e: WheelEvent,handler: InteractionHandler): void 
     {
         this.viewport.scrollX += e.deltaX;
         this.viewport.scrollY += e.deltaY;
@@ -52,7 +48,8 @@ export class GridWindowHandler {
                 currentWorkbookWidth += col.width;
         }
         this.viewport.clamp(currentWorkbookWidth, currentWorkbookHeight, canvasElement.width, canvasElement.height);
-        this.updateView();
+        (handler as any).updateView();
         e.preventDefault();
     }
+    
 }

@@ -50,6 +50,8 @@ export class CellEditor
         this.element.style.height = `${height}px`;
         this.element.style.display = "block";
 
+        this.initialValueBeforeEditing = cell.text;
+
         if (mode === "override") 
         {
             this.element.value = "";
@@ -59,11 +61,11 @@ export class CellEditor
             this.element.value = cell.text;
         }
         this.element.focus();
-        this.initialValueBeforeEditing = this.element.value;
         this.localInputHistory = new CommandHistory(); 
         this.lastValueSnapshot = this.element.value;
     }
 
+    // get the value of the cell before start editing 
     public getInitialValue(): string 
     {
         return this.initialValueBeforeEditing;

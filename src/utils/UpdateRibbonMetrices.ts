@@ -1,5 +1,5 @@
 import type { Workbook } from "../core/Workbook.js";
-import type { SelectionState } from "../events/InteractionHandler.js";
+import type { SelectionState } from "../eventsHandler/InteractionHandler.js";
 import { RangeSelectionManage } from "./RangeSelectionManage.js";
 
 // show the calculation at bottom tab

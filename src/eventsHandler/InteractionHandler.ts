@@ -4,12 +4,19 @@ import { Viewport } from "../rendering/Viewport.js";
 import { CellEditor } from "../components/CellEditor.js";
 import { CommandHistory } from "../undoRedo/CommandHistory.js";
 import { WriteTextCommand } from "../undoRedo/commands/WriteTextCommand.js";
-import { RowColumnResizeManage } from "../utils/RowColumnResizeManage.js";
 import { updateRibbonMetrics } from "../utils/UpdateRibbonMetrices.js";
-import { JsonUploadHandler } from "./JsonUploadHandler.js";
+import { FileInputHandler } from "./FileInputHandler.js";
 import { GridKeyboardHandler } from "./GridKeyboardHandler.js";
 import { GridMouseHandler } from "./GridMouseHandler.js";
 import { GridWindowHandler } from "./GridWindowHandler.js";
+import { CellMove } from "../functionality/CellMove.js";
+import { CanvasScroll } from "../functionality/CanvasScroll.js";
+import { CellEditing } from "../functionality/CellEditing.js";
+import { CellRangeSelection } from "../functionality/CellRangeSelection.js";
+import { ReachDataBoundry } from "../functionality/ReachDataBoundry.js";
+import { CanvasUndoRedo } from "../functionality/CanvasUndoRedo.js";
+import { FileUpload } from "../functionality/FileUpload.js";
+import { RowColumnResizeManager } from "../functionality/RowCoulmnResizeManager.js";
 
 export interface SelectionState 
 {
@@ -22,7 +29,7 @@ export interface SelectionState
     endColIdx?: number;
 }
 
-interface ResizeState 
+export interface ResizeState 
 {
     type: "row" | "column";
     index: number;
@@ -37,17 +44,30 @@ export class InteractionHandler
     private hoverResizeInfo: { type: "row" | "column"; index: number } | null = null;
     private isSelectingRange = false;
     private dragSelectionType: "cell" | "row" | "column" = "cell";
-
-    private history = new CommandHistory();
-    private resizeManager = new RowColumnResizeManage();
     
-    private jsonUploadHandler!: JsonUploadHandler;
-    private keyboardHandler!: GridKeyboardHandler;
-    private mouseHandler!: GridMouseHandler;
-    private windowHandler!: GridWindowHandler;
-
+    // dom element
     private domFileInput = document.getElementById("jsonFileInput") as HTMLInputElement | null;
     private domSpinner = document.getElementById("loadingSpinner");
+    private canvas = document.getElementById("gridCanvas") as HTMLCanvasElement;
+
+    // command history
+    private history = new CommandHistory();
+    
+    // event functionality
+    private cellEditing: CellEditing;
+    private cellMove: CellMove;
+    private cellRangeSelection: CellRangeSelection;
+    private reachtoDataBoundary: ReachDataBoundry;
+    private canvasUndoRedo: CanvasUndoRedo;
+    private canvasScroll: CanvasScroll;
+    private fileUpload: FileUpload;
+    private rowColumnResizeManager: RowColumnResizeManager;
+    
+    // event handlers
+    private fileInputHandler: FileInputHandler;
+    private keyboardHandler: GridKeyboardHandler;
+    private mouseHandler: GridMouseHandler;
+    private windowHandler: GridWindowHandler;
 
     constructor(
         private workbook: Workbook,
@@ -56,23 +76,34 @@ export class InteractionHandler
         private editor: CellEditor
     ) 
     {
-        this.jsonUploadHandler = new JsonUploadHandler(
-            this.workbook, this.viewport, this.domSpinner, () => this.updateView()
-        );
+        // event functionality initialize
+        this.cellEditing = new CellEditing(viewport,workbook,renderer,editor);
+        this.cellMove = new CellMove(viewport,workbook,renderer);
+        this.cellRangeSelection = new CellRangeSelection(viewport,workbook,renderer);
+        this.reachtoDataBoundary = new ReachDataBoundry(viewport,workbook,renderer);
+        this.canvasUndoRedo = new CanvasUndoRedo(viewport,workbook,renderer,this.history);
+        this.canvasScroll = new CanvasScroll(viewport,workbook,renderer,this.updateView);
+        this.fileUpload = new FileUpload(workbook,viewport,this.domSpinner,this.updateView);
+        this.rowColumnResizeManager = new RowColumnResizeManager(workbook,viewport,renderer,this.canvas,this.history);
+
+
+        // event handlers initialize
+        this.fileInputHandler = new FileInputHandler(this.fileUpload);
 
         this.keyboardHandler = new GridKeyboardHandler(
-            this.workbook, this.viewport, this.renderer, this.editor, this.history
+            this.cellEditing, this.cellMove, this.cellRangeSelection, this.reachtoDataBoundary,this.canvasUndoRedo, this.editor
         );
 
         this.mouseHandler = new GridMouseHandler(
-            this.workbook, this.viewport, this.renderer, this.editor, this.history, this.resizeManager,
+            this.workbook, this.viewport, this.renderer, this.editor, this.history, this.rowColumnResizeManager,this.cellEditing,
             () => this.updateView()
         );
-
+        
         this.windowHandler = new GridWindowHandler(
-            this.workbook, this.viewport, this.renderer, () => this.updateView()
+            this.canvasScroll, this.renderer, () => this.updateView()
         );
 
+        // bind all events to the handler
         this.bindEvents();
     }
 
@@ -80,32 +111,33 @@ export class InteractionHandler
     private bindEvents(): void 
     {
         const canvas = this.renderer.getCanvasElement();
-
-        window.addEventListener("resize", () => this.windowHandler.handleResize());
-        canvas.addEventListener("mousedown", (e) => this.mouseHandler.handleMouseDown(e, this));
-        canvas.addEventListener("mousemove", (e) => this.mouseHandler.handleMouseMove(e, this));
-        canvas.addEventListener("mouseup", () => this.mouseHandler.handleMouseUp(this));
-        canvas.addEventListener("dblclick", (e) => this.mouseHandler.handleDoubleClick(e, this.selection));
-        window.addEventListener("keydown", (e) => this.keyboardHandler.handleGlobalKeyDown(e, this));
-        this.editor.getElement().addEventListener("blur", () => this.saveEditorContent());
-
+        
+        if(this.domFileInput) 
+        {
+            this.domFileInput.addEventListener("change", (e) => this.fileInputHandler.handleFileImport(e,this));
+        }
+        
         this.editor.getElement().addEventListener("keydown", (e) => 
         {
             if (e.key === "Enter") 
             {
                 e.stopPropagation(); 
                 this.editor.getElement().blur();
-                (this.keyboardHandler as any).moveSelection(1, 0, this);
+                this.cellMove.moveSelection(1, 0, this);
                 e.preventDefault();
             }
         });
+        window.addEventListener("keydown", (e) => this.keyboardHandler.handleGlobalKeyDown(e, this));
 
-        canvas.addEventListener("wheel", (e) => this.windowHandler.handleScroll(e), { passive: false });
-
-        if (this.domFileInput) 
-        {
-            this.domFileInput.addEventListener("change", (e) => this.jsonUploadHandler.handleCustomJsonUpload(e));
-        }
+        canvas.addEventListener("mousedown", (e) => this.mouseHandler.handleMouseDown(e, this));
+        canvas.addEventListener("mousemove", (e) => this.mouseHandler.handleMouseMove(e, this));
+        canvas.addEventListener("mouseup", (e) => this.mouseHandler.handleMouseUp(e,this));
+        canvas.addEventListener("dblclick", (e) => this.mouseHandler.handleDoubleClick(e, this));
+        
+        window.addEventListener("resize", () => this.windowHandler.handleResize());
+        canvas.addEventListener("wheel", (e) => this.windowHandler.handleScroll(e,this), { passive: false });
+        
+        this.editor.getElement().addEventListener("blur", () => this.saveEditorContent());
     }
 
     // this is use to save the input value

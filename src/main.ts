@@ -2,7 +2,7 @@ import { Workbook } from "./core/Workbook.js";
 import { Viewport } from "./rendering/Viewport.js";
 import { CanvasRenderer } from "./rendering/CanvasRenderer.js";
 import { CellEditor } from "./components/CellEditor.js";
-import { InteractionHandler } from "./events/InteractionHandler.js";
+import { InteractionHandler } from "./eventsHandler/InteractionHandler.js";
 
 window.addEventListener("DOMContentLoaded", () => 
 {

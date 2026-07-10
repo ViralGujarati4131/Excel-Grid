@@ -58,9 +58,7 @@ export class Workbook
 
     // expand the rows when scroll near to reach at end
     public expandRows(batchSize: number = 50): void 
-    {
-        console.log("hi");
-        
+    {   
         const currentCount = this.rows.length;
 
         if (currentCount >= this.MAX_ROWS) 
@@ -79,8 +77,6 @@ export class Workbook
     // expand the cloumns when scroll near to reach at end
     public expandColumns(batchSize: number = 20): void 
     {
-        console.log("Hello");
-        
         const currentCount = this.columns.length;
 
         if (currentCount >= this.MAX_COLS) 

@@ -1,7 +1,7 @@
 import type { IRenderer } from "./IRenderer.js";
 import { Workbook } from "../core/Workbook.js";
 import { Viewport } from "./Viewport.js";
-import type { SelectionState } from "../events/InteractionHandler.js";
+import type { SelectionState } from "../eventsHandler/InteractionHandler.js";
 
 export class CanvasRenderer implements IRenderer 
 {

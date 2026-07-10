@@ -1,16 +1,18 @@
-import { Workbook } from "../core/Workbook.js";
-import { Viewport } from "../rendering/Viewport.js";
+import type { Workbook } from "../core/Workbook.js";
+import type { InteractionHandler } from "../eventsHandler/InteractionHandler.js";
+import type { Viewport } from "../rendering/Viewport.js";
 
-export class JsonUploadHandler {
+export class FileUpload
+{
     constructor(
         private workbook: Workbook,
         private viewport: Viewport,
         private domSpinner: HTMLElement | null,
         private updateView: () => void
-    ) {}
+    )
+    {}
 
-    // read the data of json file and store it in cells and update view 
-    public handleCustomJsonUpload(e: Event): void 
+    public handleJsonFileUpload(e: Event,handler: InteractionHandler): void 
     {
         const target = e.target as HTMLInputElement;
         const file = target.files ? target.files[0] : null;
@@ -61,7 +63,7 @@ export class JsonUploadHandler {
                     this.domSpinner.style.display = "none";
 
                 target.value = ""; 
-                this.updateView();
+                (handler as any).updateView();
             }
         };
     }

@@ -1,6 +1,6 @@
 import type { Workbook } from "../core/Workbook.js";
 import type { Viewport } from "./Viewport.js";
-import type { SelectionState } from "../events/InteractionHandler.js";
+import type { SelectionState } from "../eventsHandler/InteractionHandler.js";
 
 export interface IRenderer 
 {

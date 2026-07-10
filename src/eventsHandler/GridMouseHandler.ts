@@ -3,13 +3,11 @@ import { Viewport } from "../rendering/Viewport.js";
 import { CanvasRenderer } from "../rendering/CanvasRenderer.js";
 import { CellEditor } from "../components/CellEditor.js";
 import { CommandHistory } from "../undoRedo/CommandHistory.js";
-import { ResizeColumnCommand } from "../undoRedo/commands/ResizeColumnCommand.js";
-import { ResizeRowCommand } from "../undoRedo/commands/ResizeRowCommand.js";
-import { RowColumnResizeManage } from "../utils/RowColumnResizeManage.js";
 import { getCellByCoordination } from "../utils/GetCellByCoordination.js";
 import { InteractionHandler } from "./InteractionHandler.js";
-import type { SelectionState } from "./InteractionHandler.js";
 import { adjustViewportToCell } from "../utils/AdjustViewportToCell.js";
+import { CellEditing } from "../functionality/CellEditing.js";
+import { RowColumnResizeManager } from "../functionality/RowCoulmnResizeManager.js";
 
 export class GridMouseHandler 
 {
@@ -19,8 +17,9 @@ export class GridMouseHandler
         private renderer: CanvasRenderer,
         private editor: CellEditor,
         private history: CommandHistory,
-        private resizeManager: RowColumnResizeManage,
-        private updateView: () => void
+        private rowColumnResizeManager: RowColumnResizeManager,
+        private cellEditing: CellEditing,
+        private updateView: () => void,
     ) {}
 
     // mouse down mean when we just press the mouse
@@ -197,17 +196,24 @@ export class GridMouseHandler
                 this.workbook.expandRows(50);
             }
 
-            const edgeMargin = 40;
+            const edgeMarginForColumn = 80;
+            const edgeMarginForRow = 50;
 
-            if (x >= canvas.width - edgeMargin) {
-                this.viewport.scrollX += 100;
-            } else if (x <= this.viewport.headerWidth + edgeMargin && this.viewport.scrollX > 0) {
-                this.viewport.scrollX = Math.max(0, this.viewport.scrollX - 100);
+            if (x >= canvas.width - edgeMarginForColumn) 
+            {
+                this.viewport.scrollX += 50;
+            } 
+            else if (x <= this.viewport.headerWidth + edgeMarginForColumn && this.viewport.scrollX > 0) 
+            {
+                this.viewport.scrollX = Math.max(0, this.viewport.scrollX - 50);
             }
 
-            if (y >= canvas.height - edgeMargin) {
-                this.viewport.scrollY += 30;
-            } else if (y <= this.viewport.headerHeight + edgeMargin && this.viewport.scrollY > 0) {
+            if (y >= canvas.height - edgeMarginForRow) 
+            {
+                this.viewport.scrollY += 15;
+            } 
+            else if (y <= this.viewport.headerHeight + edgeMarginForRow && this.viewport.scrollY > 0) 
+            {
                 this.viewport.scrollY = Math.max(0, this.viewport.scrollY - 30);
             }
 
@@ -240,71 +246,27 @@ export class GridMouseHandler
         }
 
         // change cursor type if near to row or column header edge for resize other wise default
-        handler["hoverResizeInfo"] = this.resizeManager.checkHoverEdge(
-            x, y, this.workbook, this.viewport, this.renderer, this.renderer.getCanvasElement()
-        );
+        handler["hoverResizeInfo"] = this.rowColumnResizeManager.checkHoverEdge(x, y);
     }
 
-    public handleMouseUp(handler: InteractionHandler): void 
+    public handleMouseUp(e: MouseEvent,handler: InteractionHandler): void 
     {  
         // if row column resized happen than store that value command and put it to history undo array 
         if (handler["resizeState"]) 
         {
-            // column resize
-            if (handler["resizeState"].type === "column") 
-            {
-                const col = this.workbook.columns[handler["resizeState"].index];
+            this.rowColumnResizeManager.SaveResizeValue(e,handler);
 
-                if (col && col.width !== handler["resizeState"].startSize) 
-                    this.history.add(new ResizeColumnCommand(col, col.width, handler["resizeState"].startSize));
-            } 
-            else 
-            {
-                // row resize
-                const row = this.workbook.rows[handler["resizeState"].index];
-
-                if (row && row.height !== handler["resizeState"].startSize) 
-                    this.history.add(new ResizeRowCommand(row, row.height, handler["resizeState"].startSize));
-            }
+            // clear the resize state resize complete and mouse up
+            handler["resizeState"] = null;
         }
-        
-        // clear the resize state resize complete and mouse up
-        handler["resizeState"] = null;
 
         // clear the isSelectingRange variable after complete selection and mouse up
         handler["isSelectingRange"] = false;
     }
 
     // this is to handle double click event
-    public handleDoubleClick(e: MouseEvent, selection: SelectionState | null): void 
+    public handleDoubleClick(e: MouseEvent, handler: InteractionHandler): void 
     {
-        // if nothing is selection and double click or if row or cloumn select and double click than return
-        if (!selection || selection.type !== "cell") 
-            return;
-
-        const rect = this.renderer.getCanvasElement().getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        if (x < this.viewport.headerWidth || y < this.viewport.headerHeight) 
-            return;
-
-        // get row and column
-        const colIndex = this.workbook.columns.findIndex(c => c.name === selection.colName);
-        const rowIndex = this.workbook.rows.findIndex(r => r.id === selection.rowId);
-        const row = this.workbook.rows[rowIndex];
-        const col = this.workbook.columns[colIndex];
-
-        if (row && col) 
-        {
-            // get cell
-            const cell = this.workbook.getCell(row.id, col.name);
-            if (cell) 
-            {
-                const cellX = rect.left + this.viewport.headerWidth + this.renderer.getColX(this.workbook, colIndex) - this.viewport.scrollX;
-                const cellY = rect.top + this.viewport.headerHeight + this.renderer.getRowY(this.workbook, rowIndex) - this.viewport.scrollY;
-                this.editor.show(cell, cellX, cellY, col.width, row.height, cell.text ? "append" : "override");
-            }
-        }
+        this.cellEditing.ActiveCell(handler,e);
     }
 }
