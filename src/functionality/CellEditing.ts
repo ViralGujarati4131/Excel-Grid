@@ -3,6 +3,8 @@ import type { Workbook } from "../core/Workbook.js";
 import type { InteractionHandler } from "../eventsHandler/InteractionHandler.js";
 import type { CanvasRenderer } from "../rendering/CanvasRenderer.js";
 import type { Viewport } from "../rendering/Viewport.js";
+import type { CommandHistory } from "../undoRedo/CommandHistory.js";
+import { WriteTextCommand } from "../undoRedo/commands/WriteTextCommand.js";
 
 export class CellEditing
 {
@@ -10,7 +12,8 @@ export class CellEditing
         private viewport: Viewport,
         private workbook: Workbook,
         private renderer:  CanvasRenderer,
-        private editor: CellEditor
+        private editor: CellEditor,
+        private history: CommandHistory
     ){}
 
     // render the inputBox on cell
@@ -19,8 +22,7 @@ export class CellEditing
         // Delete when cell is only select not active
 
         if (
-            !handler.selection || 
-            handler.selection.type !== "cell" || 
+            !handler.selection ||
             e.ctrlKey || 
             e.altKey || 
             e.shiftKey || 
@@ -38,10 +40,22 @@ export class CellEditing
                 || e.key == "F9" 
                 || e.key == "F10"
                 || e.key == "F11"
-                || e.key == "F12")))
+                || e.key == "F12"
+                || e.key == "Backspace"
+                || e.key == "Pause"
+                || e.key == "Home"
+                || e.key == "End"
+                || e.key == "NumLock"
+                || e.key == "CapsLock"
+                || e.key == "Tab")))
         {
             return;
         } 
+
+        const validTypes = ["cell", "range", "columnRange", "rowRange", "row","column"];
+        if (!validTypes.includes(handler.selection.type)) {
+            return;
+        }
 
         const rect = this.renderer.getCanvasElement().getBoundingClientRect();
 
@@ -55,11 +69,15 @@ export class CellEditing
                 return;
         }
 
-        // get row and column index
-        const colIndex = this.workbook.columns.findIndex(c => c.name === handler.selection!.colName);
-        const rowIndex = this.workbook.rows.findIndex(r => r.id === handler.selection!.rowId);
+        const rowIndex = handler.selection.activeRowIdx !== undefined 
+            ? handler.selection.activeRowIdx 
+            : (handler.selection.startRowIdx);
+            
+        const colIndex = handler.selection.activeColIdx !== undefined 
+            ? handler.selection.activeColIdx 
+            : (handler.selection.startColIdx);
 
-         if (colIndex !== -1 && rowIndex !== -1) 
+        if (colIndex !== undefined && rowIndex !== undefined) 
         {
             // get row and column
             const row = this.workbook.rows[rowIndex];   
@@ -83,6 +101,41 @@ export class CellEditing
         } 
     }
 
+    // this is use to save the input value
+    public saveEditorContent(handler: InteractionHandler): void 
+    {   
+        if (handler.selection)
+        {
+            const rIdx = handler.selection.activeRowIdx ?? handler.selection.startRowIdx;
+            const cIdx = handler.selection.activeColIdx ?? handler.selection.startColIdx;
+             
+            if(rIdx !== undefined && cIdx !== undefined)
+            {
+                const row = this.workbook.rows[rIdx];
+                const col = this.workbook.columns[cIdx];
+
+                const cell = this.workbook.getCell(row!.id, col!.name);
+
+                if (cell) 
+                {
+                    const oldText = cell.text;
+                    const newText = this.editor.getValue();
+                    
+                    // store the written text as a command for maintain undo redo state
+                    if (oldText !== newText) 
+                    {
+                        const cmd = new WriteTextCommand(cell, newText, oldText, rIdx,cIdx);
+                        cmd.execute();
+                        this.history.add(cmd);
+                    }
+                }
+            }
+        }
+        this.editor.hide();
+        handler.updateView();
+    }
+    
+
     public CancelCellEditing(e: KeyboardEvent,handler: InteractionHandler)
     {
         if (this.editor.getElement().style.display !== "none") 
@@ -90,7 +143,7 @@ export class CellEditing
             const originalText = this.editor.getInitialValue();
             this.editor.setValue(originalText);
             this.editor.hide();
-            (handler as any).updateView();
+            handler.updateView();
             e.preventDefault();
             return;
         }

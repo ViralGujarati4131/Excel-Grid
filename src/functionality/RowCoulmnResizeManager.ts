@@ -1,3 +1,4 @@
+import type { CellEditor } from "../components/CellEditor.js";
 import type { Workbook } from "../core/Workbook.js";
 import type { InteractionHandler, ResizeState } from "../eventsHandler/InteractionHandler.js";
 import type { CanvasRenderer } from "../rendering/CanvasRenderer.js";
@@ -14,7 +15,8 @@ export class RowColumnResizeManager
         private viewport: Viewport,
         private renderer: CanvasRenderer,
         private canvas: HTMLCanvasElement,
-        private history: CommandHistory
+        private history: CommandHistory,
+        private editor: CellEditor
     )
     {}
 
@@ -54,8 +56,68 @@ export class RowColumnResizeManager
         return null;
     }
 
+    public setResizeState(e: MouseEvent,handler: InteractionHandler)
+    {
+        if (!handler["hoverResizeInfo"])
+            return;
+    
+        // column resize
+        if (handler["hoverResizeInfo"].type === "column") 
+        {
+            const col = this.workbook.columns[handler["hoverResizeInfo"].index];
+            if (col) 
+            {
+                handler["resizeState"] = {
+                    type: "column",
+                    index: handler["hoverResizeInfo"].index,
+                    startPos: e.clientX,
+                    startSize: col.width
+                };
+            }
+        } 
+        else 
+        {
+            // row resize
+            const row = this.workbook.rows[handler["hoverResizeInfo"].index];
+            if (row) 
+            {
+                handler["resizeState"] = {
+                    type: "row",
+                    index: handler["hoverResizeInfo"].index,
+                    startPos: e.clientY,
+                    startSize: row.height
+                };
+            }
+        }
+        this.editor.hide();
+            
+    }
+    
+    public storeResizeValue(e: MouseEvent,handler: InteractionHandler)
+    {
+         if(!handler["resizeState"])
+            return;
 
-    public SaveResizeValue(e: MouseEvent,handler: InteractionHandler)
+        if (handler["resizeState"].type === "column") 
+        {        
+            const deltaX = e.clientX - handler["resizeState"].startPos;
+            const col = this.workbook.columns[handler["resizeState"].index];
+
+            if (col) 
+                col.width = Math.max(30, handler["resizeState"].startSize + deltaX);
+        } 
+        else 
+        {
+            const deltaY = e.clientY - handler["resizeState"].startPos;
+            const row = this.workbook.rows[handler["resizeState"].index];
+
+            if (row) 
+                row.height = Math.max(15, handler["resizeState"].startSize + deltaY);
+        }
+        handler.updateView();
+    }
+
+     public SaveResizeValue(handler: InteractionHandler)
     {
         if(!handler["resizeState"])
             return;
@@ -65,15 +127,7 @@ export class RowColumnResizeManager
             const col = this.workbook.columns[handler["resizeState"].index];
 
             if (col && col.width !== handler["resizeState"].startSize) 
-            {
-                // if(e instanceof MouseEvent)
-                // {
-                //     const deltaX = e.clientX - handler["resizeState"].startPos;
-                //     col.width = Math.max(30, handler["resizeState"].startSize + deltaX);
-                //     return;
-                // }
                 this.history.add(new ResizeColumnCommand(col, col.width, handler["resizeState"].startSize));
-            }
         } 
         else 
         {
@@ -81,16 +135,7 @@ export class RowColumnResizeManager
             const row = this.workbook.rows[handler["resizeState"].index];
 
             if (row && row.height !== handler["resizeState"].startSize) 
-            {
-                // if(e instanceof MouseEvent)
-                // {
-                //     const deltaX = e.clientX - handler["resizeState"].startPos;
-                //     row.height = Math.max(30, handler["resizeState"].startSize + deltaX);
-                //     return;
-                // }
                 this.history.add(new ResizeRowCommand(row, row.height, handler["resizeState"].startSize));
-            }
         }
     }
-    
 }

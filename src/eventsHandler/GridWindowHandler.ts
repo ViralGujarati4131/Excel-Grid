@@ -5,14 +5,13 @@ import type { InteractionHandler } from "./InteractionHandler.js";
 export class GridWindowHandler {
     constructor(
         private canvasScroll: CanvasScroll,
-        private renderer: CanvasRenderer,
-        private updateView: () => void
+        private renderer: CanvasRenderer
     ) {}
 
-    public handleResize(): void 
+    public handleResize(handler: InteractionHandler): void 
     {
         this.renderer.resize(window.innerWidth, window.innerHeight - 40);
-        this.updateView();
+        handler.updateView();
     }
 
     public handleScroll(e: WheelEvent,handler: InteractionHandler): void 

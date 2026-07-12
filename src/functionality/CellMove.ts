@@ -3,6 +3,7 @@ import type { InteractionHandler } from "../eventsHandler/InteractionHandler.js"
 import type { CanvasRenderer } from "../rendering/CanvasRenderer.js";
 import type { Viewport } from "../rendering/Viewport.js";
 import { adjustViewportToCell } from "../utils/AdjustViewportToCell.js";
+import { getNextCellWithinRange } from "../utils/getNextCellInRange.js";
 
 export class CellMove
 {
@@ -12,6 +13,7 @@ export class CellMove
         private renderer:  CanvasRenderer
     ){}
 
+    // normal move in grid
     public moveSelection(rowDelta: number, colDelta: number, handler: InteractionHandler): void 
     {
         // if nothing is selection return
@@ -50,8 +52,32 @@ export class CellMove
             };
             // make view port visible if cell selection go out of visible boundry
             adjustViewportToCell(newRowIdx, newColIdx, this.renderer, this.workbook, this.viewport);
-            (handler as any).updateView();
+            handler.updateView();
         }
+    }
+
+    public moveSelectionInsideRange(handler: InteractionHandler)
+    {
+        if (!handler.selection || handler.selection.type == "cell") 
+            return;
+
+        const nextCell = getNextCellWithinRange(
+            handler.selection, 1, 0, handler.workbook.rows.length, handler.workbook.columns.length
+        );
+        
+        handler.selection.activeRowIdx = nextCell.rowIdx;
+        handler.selection.activeColIdx = nextCell.colIdx;
+        
+        const nextRow = handler.workbook.rows[nextCell.rowIdx];
+        const nextCol = handler.workbook.columns[nextCell.colIdx];
+        
+        if (nextRow && nextCol) {
+            handler.selection.rowId = nextRow.id;
+            handler.selection.colName = nextCol.name;
+        }
+
+        adjustViewportToCell(nextCell.rowIdx, nextCell.colIdx, this.renderer, handler.workbook, this.viewport); //
+        handler.updateView();
     }
 
 }

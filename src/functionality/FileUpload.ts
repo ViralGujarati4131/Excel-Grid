@@ -7,8 +7,7 @@ export class FileUpload
     constructor(
         private workbook: Workbook,
         private viewport: Viewport,
-        private domSpinner: HTMLElement | null,
-        private updateView: () => void
+        private domSpinner: HTMLElement | null
     )
     {}
 
@@ -63,7 +62,7 @@ export class FileUpload
                     this.domSpinner.style.display = "none";
 
                 target.value = ""; 
-                (handler as any).updateView();
+                handler.updateView();
             }
         };
     }

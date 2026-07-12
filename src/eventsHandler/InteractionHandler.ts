@@ -3,7 +3,6 @@ import { Workbook } from "../core/Workbook.js";
 import { Viewport } from "../rendering/Viewport.js";
 import { CellEditor } from "../components/CellEditor.js";
 import { CommandHistory } from "../undoRedo/CommandHistory.js";
-import { WriteTextCommand } from "../undoRedo/commands/WriteTextCommand.js";
 import { updateRibbonMetrics } from "../utils/UpdateRibbonMetrices.js";
 import { FileInputHandler } from "./FileInputHandler.js";
 import { GridKeyboardHandler } from "./GridKeyboardHandler.js";
@@ -17,6 +16,7 @@ import { ReachDataBoundry } from "../functionality/ReachDataBoundry.js";
 import { CanvasUndoRedo } from "../functionality/CanvasUndoRedo.js";
 import { FileUpload } from "../functionality/FileUpload.js";
 import { RowColumnResizeManager } from "../functionality/RowCoulmnResizeManager.js";
+import { InputKeyboardHandler } from "./InputKeyboardHandler.js";
 
 export interface SelectionState 
 {
@@ -27,6 +27,8 @@ export interface SelectionState
     startColIdx?: number;
     endRowIdx?: number;
     endColIdx?: number;
+    activeRowIdx?: number;
+    activeColIdx?: number;
 }
 
 export interface ResizeState 
@@ -68,39 +70,40 @@ export class InteractionHandler
     private keyboardHandler: GridKeyboardHandler;
     private mouseHandler: GridMouseHandler;
     private windowHandler: GridWindowHandler;
+    private inputKeyboardHandler: InputKeyboardHandler;
 
     constructor(
-        private workbook: Workbook,
+        public workbook: Workbook,
         private viewport: Viewport,
         private renderer: CanvasRenderer,
         private editor: CellEditor
     ) 
     {
         // event functionality initialize
-        this.cellEditing = new CellEditing(viewport,workbook,renderer,editor);
+        this.cellEditing = new CellEditing(viewport,workbook,renderer,editor,this.history);
         this.cellMove = new CellMove(viewport,workbook,renderer);
-        this.cellRangeSelection = new CellRangeSelection(viewport,workbook,renderer);
+        this.cellRangeSelection = new CellRangeSelection(viewport,workbook,renderer,editor);
         this.reachtoDataBoundary = new ReachDataBoundry(viewport,workbook,renderer);
         this.canvasUndoRedo = new CanvasUndoRedo(viewport,workbook,renderer,this.history);
-        this.canvasScroll = new CanvasScroll(viewport,workbook,renderer,this.updateView);
-        this.fileUpload = new FileUpload(workbook,viewport,this.domSpinner,this.updateView);
-        this.rowColumnResizeManager = new RowColumnResizeManager(workbook,viewport,renderer,this.canvas,this.history);
-
+        this.canvasScroll = new CanvasScroll(viewport,workbook,renderer);
+        this.fileUpload = new FileUpload(workbook,viewport,this.domSpinner);
+        this.rowColumnResizeManager = new RowColumnResizeManager(workbook,viewport,renderer,this.canvas,this.history,this.editor);
 
         // event handlers initialize
         this.fileInputHandler = new FileInputHandler(this.fileUpload);
+
+        this.inputKeyboardHandler = new InputKeyboardHandler(this.editor,this.cellMove);
 
         this.keyboardHandler = new GridKeyboardHandler(
             this.cellEditing, this.cellMove, this.cellRangeSelection, this.reachtoDataBoundary,this.canvasUndoRedo, this.editor
         );
 
         this.mouseHandler = new GridMouseHandler(
-            this.workbook, this.viewport, this.renderer, this.editor, this.history, this.rowColumnResizeManager,this.cellEditing,
-            () => this.updateView()
+            this.workbook, this.viewport, this.renderer, this.editor, this.rowColumnResizeManager,this.cellEditing,this.cellRangeSelection
         );
         
         this.windowHandler = new GridWindowHandler(
-            this.canvasScroll, this.renderer, () => this.updateView()
+            this.canvasScroll, this.renderer
         );
 
         // bind all events to the handler
@@ -117,55 +120,22 @@ export class InteractionHandler
             this.domFileInput.addEventListener("change", (e) => this.fileInputHandler.handleFileImport(e,this));
         }
         
-        this.editor.getElement().addEventListener("keydown", (e) => 
-        {
-            if (e.key === "Enter") 
-            {
-                e.stopPropagation(); 
-                this.editor.getElement().blur();
-                this.cellMove.moveSelection(1, 0, this);
-                e.preventDefault();
-            }
-        });
         window.addEventListener("keydown", (e) => this.keyboardHandler.handleGlobalKeyDown(e, this));
 
         canvas.addEventListener("mousedown", (e) => this.mouseHandler.handleMouseDown(e, this));
         canvas.addEventListener("mousemove", (e) => this.mouseHandler.handleMouseMove(e, this));
-        canvas.addEventListener("mouseup", (e) => this.mouseHandler.handleMouseUp(e,this));
+        canvas.addEventListener("mouseup", () => this.mouseHandler.handleMouseUp(this));
         canvas.addEventListener("dblclick", (e) => this.mouseHandler.handleDoubleClick(e, this));
         
-        window.addEventListener("resize", () => this.windowHandler.handleResize());
+        window.addEventListener("resize", () => this.windowHandler.handleResize(this));
         canvas.addEventListener("wheel", (e) => this.windowHandler.handleScroll(e,this), { passive: false });
         
-        this.editor.getElement().addEventListener("blur", () => this.saveEditorContent());
-    }
-
-    // this is use to save the input value
-    private saveEditorContent(): void 
-    {
-        if (this.selection && this.selection.type === "cell" && this.selection.rowId && this.selection.colName && this.selection.startRowIdx !== undefined && this.selection.startColIdx !== undefined) 
-        {
-            const cell = this.workbook.getCell(this.selection.rowId, this.selection.colName);
-            if (cell) 
-            {
-                const oldText = cell.text;
-                const newText = this.editor.getValue();
-                
-                // store the written text as a command for maintain undo redo state
-                if (oldText !== newText) 
-                {
-                    const cmd = new WriteTextCommand(cell, newText, oldText, this.selection.startRowIdx, this.selection.startColIdx);
-                    cmd.execute();
-                    this.history.add(cmd);
-                }
-            }
-        }
-        this.editor.hide();
-        this.updateView();
+        this.editor.getElement().addEventListener("blur", () => this.cellEditing.saveEditorContent(this));
+        this.editor.getElement().addEventListener("keydown", (e) => this.inputKeyboardHandler.handleKeyDown(e,this));
     }
 
     // update view after change in view
-    private updateView(): void 
+    public updateView(): void 
     {
         // if multiple entire row or column selected than if expantion happen to maintain that
         // row and column selected

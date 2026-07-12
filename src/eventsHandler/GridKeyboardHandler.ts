@@ -6,6 +6,7 @@ import { CellRangeSelection } from "../functionality/CellRangeSelection.js";
 import { ReachDataBoundry } from "../functionality/ReachDataBoundry.js";
 import { CanvasUndoRedo } from "../functionality/CanvasUndoRedo.js";
 import { getMovementDelta } from "../utils/GetAerrowKey.js";
+import type { InputKeyboardHandler } from "./InputKeyboardHandler.js";
 
 export class GridKeyboardHandler {
 
@@ -28,10 +29,14 @@ export class GridKeyboardHandler {
             this.cellEditing.ActiveCell(handler,e);
         }
 
-        // to cancel the writing in cell and to cancel the editing        
-        if(e.key === "Escape")
-        {
-            this.cellEditing.CancelCellEditing(e,handler);
+        // to cancel the writing in cell and to cancel the editing      
+        if (this.editor.getElement().style.display !== "none")
+        {  
+            if(e.key === "Escape")
+            {
+                this.cellEditing.CancelCellEditing(e,handler);
+            }
+            return;
         }
 
         // undo the written text and move selection of cell accordingly
@@ -50,6 +55,13 @@ export class GridKeyboardHandler {
 
         if(this.editor.getElement().style.display !== "none")
             return;
+
+        if (e.key === "Enter" && handler.selection && handler.selection.type !== "cell") 
+        {
+            this.cellMove.moveSelectionInsideRange(handler);
+            e.preventDefault();
+            return;
+        }
 
         if (handler.selection && (e.key.startsWith("Arrow") || e.key === "Enter")) 
         {

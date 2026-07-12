@@ -9,7 +9,7 @@ export class ReachDataBoundry
     constructor(
         private viewport: Viewport,
         private workbook: Workbook,
-        private renderer:  CanvasRenderer,
+        private renderer:  CanvasRenderer
     ){}
 
     public jumpToDataBoundary(rowDelta: number, colDelta: number, handler: InteractionHandler): void 
@@ -120,7 +120,7 @@ export class ReachDataBoundry
                 endColIdx: currentC
             };
             adjustViewportToCell(currentR, currentC, this.renderer, this.workbook, this.viewport);
-            (handler as any).updateView();
+            handler.updateView();
         }
     }
 

@@ -46,7 +46,7 @@ export class CanvasUndoRedo
 
 
             // to update the view after undo
-            (handler as any).updateView();
+            handler.updateView();
         }
         e.preventDefault();
         return;
@@ -81,7 +81,7 @@ export class CanvasUndoRedo
             }
             
             // to update the view after redo
-            (handler as any).updateView();
+            handler.updateView();
         }
         e.preventDefault();
         return;

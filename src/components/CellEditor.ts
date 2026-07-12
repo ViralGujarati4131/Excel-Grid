@@ -14,8 +14,7 @@ export class CellEditor
     }
 
     private bindLocalHistoryEvents(): void {
-        this.element.addEventListener("input", () => {
-
+        this.element.addEventListener("input", () => {  
             const currentValue = this.element.value;
             const cmd = new EditTextCommand(this, currentValue, this.lastValueSnapshot);
             this.localInputHistory.add(cmd);

@@ -8,8 +8,7 @@ export class CanvasScroll
     constructor(
         private viewport: Viewport,
         private workbook: Workbook,
-        private renderer:  CanvasRenderer,
-        private updateView: () => void
+        private renderer:  CanvasRenderer
     ){}
 
     public handleCanvasScroll(e: WheelEvent,handler: InteractionHandler): void 
@@ -48,7 +47,7 @@ export class CanvasScroll
                 currentWorkbookWidth += col.width;
         }
         this.viewport.clamp(currentWorkbookWidth, currentWorkbookHeight, canvasElement.width, canvasElement.height);
-        (handler as any).updateView();
+        handler.updateView();
         e.preventDefault();
     }
     
