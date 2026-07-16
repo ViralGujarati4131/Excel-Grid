@@ -10,6 +10,10 @@ import { CheckRowHoverEdge } from "../utils/CheckRowHoverEdge.js";
 import { CheckColumnHoverEdge } from "../utils/CheckColumnHoverEdge.js";
 import type { RowResize } from "../functionality/RowResize.js";
 import type { ColumnResize } from "../functionality/ColumnResize.js";
+import type { CellSelection } from "../functionality/CellSelection.js";
+import type { RowSelection } from "../functionality/RowSelection.js";
+import type { ColumnSelection } from "../functionality/ColumnSelection.js";
+import type { ClearSelection } from "../functionality/ClearSelection.js";
 
 export class GridMouseHandler 
 {
@@ -21,7 +25,11 @@ export class GridMouseHandler
         private cellEditing: CellEditing,
         private cellRangeSelection: CellRangeSelection,
         private rowResize: RowResize,
-        private columnResize: ColumnResize
+        private columnResize: ColumnResize,
+        private cellSelection: CellSelection,
+        private rowSelection: RowSelection,
+        private columnSelection: ColumnSelection,
+        private clearSelection: ClearSelection
     ) {}
 
     // mouse down mean when we just press the mouse
@@ -47,6 +55,7 @@ export class GridMouseHandler
         if (x < this.viewport.headerWidth && y < this.viewport.headerHeight) 
         {
             this.cellRangeSelection.clearSelection(handler);
+            // this.clearSelection.clearSelection(handler);
             return;
         }
 
@@ -62,6 +71,7 @@ export class GridMouseHandler
         if (y < this.viewport.headerHeight) 
         {
             this.cellRangeSelection.columnSelection(indices,handler);
+            // this.columnSelection.columnSelection(indices,handler);
             return;
         }
 
@@ -69,6 +79,7 @@ export class GridMouseHandler
         if (x < this.viewport.headerWidth) 
         {
             this.cellRangeSelection.rowSelection(indices,handler);
+            // this.rowSelection.rowSelection(indices,handler);
             return;
         }
 
@@ -76,6 +87,7 @@ export class GridMouseHandler
         if (indices.rowIdx !== -1 && indices.colIdx !== -1) 
         {
             this.cellRangeSelection.cellSelection(indices,handler);
+            // this.cellSelection.cellSelection(indices,handler);
         }
     }
 

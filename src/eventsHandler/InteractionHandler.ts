@@ -18,7 +18,11 @@ import { FileUpload } from "../functionality/FileUpload.js";
 import { InputKeyboardHandler } from "./InputKeyboardHandler.js";
 import { RowResize } from "../functionality/RowResize.js";
 import { ColumnResize } from "../functionality/ColumnResize.js";
-import type { ColumnHoverResizeInfo, ColumnResizeState, RowHoverResizeInfo, RowResizeState } from "../utils/States.js";
+import type { CellSelectionState, ColumnHoverResizeInfo, ColumnResizeState, ColumnSelectionState, RowHoverResizeInfo, RowResizeState, RowSelectionState } from "../utils/States.js";
+import { CellSelection } from "../functionality/CellSelection.js";
+import { RowSelection } from "../functionality/RowSelection.js";
+import { ColumnSelection } from "../functionality/ColumnSelection.js";
+import { ClearSelection } from "../functionality/ClearSelection.js";
 
 export interface SelectionState 
 {
@@ -37,9 +41,14 @@ export class InteractionHandler
 {
     public selection: SelectionState | null = null;
 
-    private rowResizeState: RowResizeState | null = null;
-    private columnResizeState: ColumnResizeState | null = null;
+    public cellState: CellSelectionState | null = null;
+    public rowState: RowSelectionState | null = null;
+    public columnState: ColumnSelectionState | null = null;
+
     private rowHoverResizeInfo: RowHoverResizeInfo | null = null;
+    private rowResizeState: RowResizeState | null = null;
+
+    private columnResizeState: ColumnResizeState | null = null;
     private columnHoverResizeInfo: ColumnHoverResizeInfo | null = null;
 
     private isSelectingRange = false;
@@ -62,6 +71,10 @@ export class InteractionHandler
     private fileUpload: FileUpload;
     private rowResize: RowResize;
     private columnResize: ColumnResize;
+    private cellSelection: CellSelection;
+    private rowSelection: RowSelection;
+    private columnSelection: ColumnSelection;
+    private clearSelection: ClearSelection;
     
     // event handlers
     private fileInputHandler: FileInputHandler;
@@ -87,6 +100,10 @@ export class InteractionHandler
         this.fileUpload = new FileUpload(workbook,viewport,this.domSpinner);
         this.rowResize = new RowResize(workbook,this.history,editor);
         this.columnResize = new ColumnResize(workbook,this.history,editor);
+        this.cellSelection = new CellSelection(workbook,viewport,renderer);
+        this.rowSelection = new RowSelection(workbook,viewport,renderer);
+        this.columnSelection = new ColumnSelection(workbook,viewport,renderer);
+        this.clearSelection = new ClearSelection(editor);
 
         // event handlers initialize
         this.fileInputHandler = new FileInputHandler(this.fileUpload);
@@ -98,7 +115,7 @@ export class InteractionHandler
         );
 
         this.mouseHandler = new GridMouseHandler(
-            this.workbook, this.viewport, this.renderer, this.editor, this.cellEditing,this.cellRangeSelection,this.rowResize,this.columnResize
+            this.workbook, this.viewport, this.renderer, this.editor, this.cellEditing,this.cellRangeSelection,this.rowResize,this.columnResize,this.cellSelection,this.rowSelection,this.columnSelection,this.clearSelection
         );
         
         this.windowHandler = new GridWindowHandler(
@@ -150,6 +167,6 @@ export class InteractionHandler
             }   
         }
         updateRibbonMetrics(this.selection, this.workbook);
-        this.renderer.render(this.workbook, this.viewport, this.selection);
+        this.renderer.render(this.workbook, this.viewport, this.selection,this.cellState,this.rowState,this.columnState);
     }
 }

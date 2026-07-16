@@ -2,6 +2,7 @@ import type { IRenderer } from "./IRenderer.js";
 import { Workbook } from "../core/Workbook.js";
 import { Viewport } from "./Viewport.js";
 import type { SelectionState } from "../eventsHandler/InteractionHandler.js";
+import type { CellSelectionState, ColumnSelectionState, RowSelectionState } from "../utils/States.js";
 
 export class CanvasRenderer implements IRenderer 
 {
@@ -50,7 +51,7 @@ export class CanvasRenderer implements IRenderer
     }
 
     // this function will render the header, cells and multicell selection border
-    public render(workbook: Workbook, viewport: Viewport, selection: SelectionState | null): void
+    public render(workbook: Workbook, viewport: Viewport, selection: SelectionState | null,cellState: CellSelectionState | null,rowState: RowSelectionState | null,columnState: ColumnSelectionState | null): void
      {
         const ctx = this.ctx;
         ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -84,14 +85,14 @@ export class CanvasRenderer implements IRenderer
         const endCol = Math.min(workbook.columns.length, startCol + Math.ceil(this.canvas.width / 50) + 1);
         const endRow = Math.min(workbook.rows.length, startRow + Math.ceil(this.canvas.height / 20) + 1);  
 
-        this.renderCells(workbook, viewport, startRow, endRow, startCol, endCol, selection);
-        this.renderHeaders(workbook, viewport, startRow, endRow, startCol, endCol, selection);
+        this.renderCells(workbook, viewport, startRow, endRow, startCol, endCol, selection,cellState,rowState,columnState);
+        this.renderHeaders(workbook, viewport, startRow, endRow, startCol, endCol, selection,cellState,rowState,columnState);
         this.renderOriginCorner(viewport);
         this.renderRangeOuterOutline(workbook, viewport, selection);
     }
 
     // this method draw the header for the row and column and also high light it if it selected raw | column | range
-    private renderHeaders(workbook: Workbook, viewport: Viewport, sR: number, eR: number, sC: number, eC: number, selection: SelectionState | null): void 
+    private renderHeaders(workbook: Workbook, viewport: Viewport, sR: number, eR: number, sC: number, eC: number, selection: SelectionState | null,cellState: CellSelectionState | null,rowState: RowSelectionState | null,columnState: ColumnSelectionState | null): void 
     {
         const ctx = this.ctx;
         ctx.strokeStyle = "#b4b4b4";
@@ -296,7 +297,7 @@ export class CanvasRenderer implements IRenderer
     }
 
     // this is the method to show the cells in row cloumn and selection of cells and show the text of cell
-    private renderCells(workbook: Workbook, viewport: Viewport, sR: number, eR: number, sC: number, eC: number, selection: SelectionState | null): void 
+    private renderCells(workbook: Workbook, viewport: Viewport, sR: number, eR: number, sC: number, eC: number, selection: SelectionState | null, cellState: CellSelectionState | null,rowState: RowSelectionState | null,columnState: ColumnSelectionState | null): void 
     {    
         const ctx = this.ctx;
 

@@ -34,5 +34,5 @@ window.addEventListener("DOMContentLoaded", () =>
     renderer.resize(window.innerWidth, window.innerHeight - 40);
 
     // this will render the entire grid
-    renderer.render(workbook, viewport, null);
+    renderer.render(workbook, viewport, null, null,null,null);
 });
