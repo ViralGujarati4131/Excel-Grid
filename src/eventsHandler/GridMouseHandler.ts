@@ -5,8 +5,11 @@ import { CellEditor } from "../components/CellEditor.js";
 import { getCellByCoordination } from "../utils/GetCellByCoordination.js";
 import { InteractionHandler } from "./InteractionHandler.js";
 import { CellEditing } from "../functionality/CellEditing.js";
-import { RowColumnResizeManager } from "../functionality/RowCoulmnResizeManager.js";
 import type { CellRangeSelection } from "../functionality/CellRangeSelection.js";
+import { CheckRowHoverEdge } from "../utils/CheckRowHoverEdge.js";
+import { CheckColumnHoverEdge } from "../utils/CheckColumnHoverEdge.js";
+import type { RowResize } from "../functionality/RowResize.js";
+import type { ColumnResize } from "../functionality/ColumnResize.js";
 
 export class GridMouseHandler 
 {
@@ -15,9 +18,10 @@ export class GridMouseHandler
         private viewport: Viewport,
         private renderer: CanvasRenderer,
         private editor: CellEditor,
-        private rowColumnResizeManager: RowColumnResizeManager,
         private cellEditing: CellEditing,
-        private cellRangeSelection: CellRangeSelection
+        private cellRangeSelection: CellRangeSelection,
+        private rowResize: RowResize,
+        private columnResize: ColumnResize
     ) {}
 
     // mouse down mean when we just press the mouse
@@ -26,11 +30,16 @@ export class GridMouseHandler
         const rect = this.renderer.getCanvasElement().getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
-
+        
         // check if mouse down is for resizing 
-        if (handler["hoverResizeInfo"]) 
+        if(handler["rowHoverResizeInfo"])
         {
-            this.rowColumnResizeManager.setResizeState(e,handler);   
+            this.rowResize.SetRowResizeState(e,handler);
+            return;
+        }
+        if(handler["columnHoverResizeInfo"])
+        {   
+            this.columnResize.SetColumnResizeState(e,handler);
             return;
         }
 
@@ -79,13 +88,17 @@ export class GridMouseHandler
         const y = e.clientY - rect.top;
 
         // move mouse for resize the size of column or row
-        if(handler["resizeState"])
+        if(handler["rowResizeState"])
         {
-            this.rowColumnResizeManager.storeResizeValue(e,handler);
+            this.rowResize.StoreRowResizeValue(e,handler);
             return;
         }
+        if(handler["columnResizeState"])
+        {   
+            this.columnResize.StoreColumnResizeValue(e,handler);
+        }
 
-         // move mouse for cell range selection
+        // move mouse for cell range selection
         if (handler["isSelectingRange"] && handler.selection) 
         {
             this.cellRangeSelection.rangeSelectionUsingMouse(e,handler,x,y,canvas.width,canvas.height);
@@ -93,15 +106,26 @@ export class GridMouseHandler
         }
 
         // change cursor type if near to row or column header edge for resize other wise default
-        handler["hoverResizeInfo"] = this.rowColumnResizeManager.checkHoverEdge(x, y);
+        handler["columnHoverResizeInfo"] = CheckColumnHoverEdge(x,y,this.viewport,this.renderer,this.workbook,canvas);
+        
+        if(handler["columnHoverResizeInfo"] === null)
+            handler["rowHoverResizeInfo"] = CheckRowHoverEdge(x,y,this.viewport,this.renderer,this.workbook,canvas);
     }
 
     public handleMouseUp(handler: InteractionHandler): void 
     {  
-        // if row column resized happen than store that value command and put it to history undo array 
-        this.rowColumnResizeManager.SaveResizeValue(handler);
-        // clear the resize state resize complete and mouse up
-        handler["resizeState"] = null;
+        // if row or column resized happen than store that value command and put it to history undo array 
+        // clear the resize states because resize complete and mouse up
+        if(handler["rowResizeState"])
+        {
+            this.rowResize.SaveRowResizeValue(handler);
+            handler["rowResizeState"] = null;
+        }
+        if(handler["columnResizeState"])
+        {
+            this.columnResize.SaveColumnResizeValue(handler);
+            handler["columnResizeState"] = null;
+        }
 
         // clear the isSelectingRange variable after complete selection and mouse up
         handler["isSelectingRange"] = false;

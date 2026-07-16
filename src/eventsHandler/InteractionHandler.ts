@@ -15,8 +15,10 @@ import { CellRangeSelection } from "../functionality/CellRangeSelection.js";
 import { ReachDataBoundry } from "../functionality/ReachDataBoundry.js";
 import { CanvasUndoRedo } from "../functionality/CanvasUndoRedo.js";
 import { FileUpload } from "../functionality/FileUpload.js";
-import { RowColumnResizeManager } from "../functionality/RowCoulmnResizeManager.js";
 import { InputKeyboardHandler } from "./InputKeyboardHandler.js";
+import { RowResize } from "../functionality/RowResize.js";
+import { ColumnResize } from "../functionality/ColumnResize.js";
+import type { ColumnHoverResizeInfo, ColumnResizeState, RowHoverResizeInfo, RowResizeState } from "../utils/States.js";
 
 export interface SelectionState 
 {
@@ -31,26 +33,21 @@ export interface SelectionState
     activeColIdx?: number;
 }
 
-export interface ResizeState 
-{
-    type: "row" | "column";
-    index: number;
-    startPos: number;
-    startSize: number;
-}
-
 export class InteractionHandler 
 {
     public selection: SelectionState | null = null;
-    private resizeState: ResizeState | null = null;
-    private hoverResizeInfo: { type: "row" | "column"; index: number } | null = null;
+
+    private rowResizeState: RowResizeState | null = null;
+    private columnResizeState: ColumnResizeState | null = null;
+    private rowHoverResizeInfo: RowHoverResizeInfo | null = null;
+    private columnHoverResizeInfo: ColumnHoverResizeInfo | null = null;
+
     private isSelectingRange = false;
     private dragSelectionType: "cell" | "row" | "column" = "cell";
     
     // dom element
     private domFileInput = document.getElementById("jsonFileInput") as HTMLInputElement | null;
     private domSpinner = document.getElementById("loadingSpinner");
-    private canvas = document.getElementById("gridCanvas") as HTMLCanvasElement;
 
     // command history
     private history = new CommandHistory();
@@ -63,7 +60,8 @@ export class InteractionHandler
     private canvasUndoRedo: CanvasUndoRedo;
     private canvasScroll: CanvasScroll;
     private fileUpload: FileUpload;
-    private rowColumnResizeManager: RowColumnResizeManager;
+    private rowResize: RowResize;
+    private columnResize: ColumnResize;
     
     // event handlers
     private fileInputHandler: FileInputHandler;
@@ -87,7 +85,8 @@ export class InteractionHandler
         this.canvasUndoRedo = new CanvasUndoRedo(viewport,workbook,renderer,this.history);
         this.canvasScroll = new CanvasScroll(viewport,workbook,renderer);
         this.fileUpload = new FileUpload(workbook,viewport,this.domSpinner);
-        this.rowColumnResizeManager = new RowColumnResizeManager(workbook,viewport,renderer,this.canvas,this.history,this.editor);
+        this.rowResize = new RowResize(workbook,this.history,editor);
+        this.columnResize = new ColumnResize(workbook,this.history,editor);
 
         // event handlers initialize
         this.fileInputHandler = new FileInputHandler(this.fileUpload);
@@ -99,7 +98,7 @@ export class InteractionHandler
         );
 
         this.mouseHandler = new GridMouseHandler(
-            this.workbook, this.viewport, this.renderer, this.editor, this.rowColumnResizeManager,this.cellEditing,this.cellRangeSelection
+            this.workbook, this.viewport, this.renderer, this.editor, this.cellEditing,this.cellRangeSelection,this.rowResize,this.columnResize
         );
         
         this.windowHandler = new GridWindowHandler(
