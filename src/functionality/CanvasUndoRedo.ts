@@ -11,17 +11,16 @@ export class CanvasUndoRedo
     constructor(
         private viewport: Viewport,
         private workbook: Workbook,
-        private renderer:  CanvasRenderer,
+        private renderer: CanvasRenderer,
         private history: CommandHistory
     )
     {}
 
-    public canvasUndo(e: KeyboardEvent,handler: InteractionHandler)
+    public canvasUndo(e: KeyboardEvent, handler: InteractionHandler)
     {
         const lastCommand = (this.history as any).undoStack?.[(this.history as any).undoStack.length - 1];           
         if (this.history.undo()) 
         {
-
             // if text is undo that time only execute
             // this is just to move selection with the undo
             if (lastCommand && lastCommand instanceof WriteTextCommand) 
@@ -32,19 +31,16 @@ export class CanvasUndoRedo
                 if (row && col) 
                 {
                     handler.selection = {
-                        type: "cell", 
-                        rowId: row.id, 
-                        colName: col.name,
                         startRowIdx: lastCommand.rowIdx, 
                         startColIdx: lastCommand.colIdx,
                         endRowIdx: lastCommand.rowIdx, 
-                        endColIdx: lastCommand.colIdx
+                        endColIdx: lastCommand.colIdx,
+                        activeRowIdx: lastCommand.rowIdx,
+                        activeColIdx: lastCommand.colIdx
                     };
                     adjustViewportToCell(lastCommand.rowIdx, lastCommand.colIdx, this.renderer, this.workbook, this.viewport);
                 }
             }
-
-
             // to update the view after undo
             handler.updateView();
         }
@@ -52,12 +48,11 @@ export class CanvasUndoRedo
         return;
     }
 
-    public canvasRedo(e: KeyboardEvent,handler: InteractionHandler)
+    public canvasRedo(e: KeyboardEvent, handler: InteractionHandler)
     {
         const nextCommand = (this.history as any).redoStack?.[(this.history as any).redoStack.length - 1];
         if (this.history.redo()) 
         {
-
             // if text is redo that time only execute
             // this just to move the selection with the redo
             if (nextCommand && nextCommand instanceof WriteTextCommand) 
@@ -68,23 +63,20 @@ export class CanvasUndoRedo
                 if (row && col) 
                 {
                     handler.selection = {
-                        type: "cell", 
-                        rowId: row.id, 
-                        colName: col.name,
                         startRowIdx: nextCommand.rowIdx, 
                         startColIdx: nextCommand.colIdx,
                         endRowIdx: nextCommand.rowIdx, 
-                        endColIdx: nextCommand.colIdx
+                        endColIdx: nextCommand.colIdx,
+                        activeRowIdx: nextCommand.rowIdx,
+                        activeColIdx: nextCommand.colIdx
                     };
                     adjustViewportToCell(nextCommand.rowIdx, nextCommand.colIdx, this.renderer, this.workbook, this.viewport);
                 }
             }
-            
             // to update the view after redo
             handler.updateView();
         }
         e.preventDefault();
         return;
     }
-
 }

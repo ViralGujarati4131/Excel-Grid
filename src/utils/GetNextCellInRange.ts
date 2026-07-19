@@ -1,29 +1,21 @@
-import type { SelectionState } from "../eventsHandler/InteractionHandler.js";
-import { RangeSelectionManage } from "./RangeSelectionManage.js";
+import type { SelectionState } from "./States.js";
 
 export function getNextCellWithinRange(selection: SelectionState, rowDelta: number, colDelta: number, maxRows: number, maxCols: number): { rowIdx: number; colIdx: number } 
 {
     let minR = 0, maxR = maxRows - 1;
     let minC = 0, maxC = maxCols - 1;
 
-    if (selection.type === "range" || selection.type === "columnRange" || selection.type === "rowRange") {
-        const bounds = RangeSelectionManage.normalizeSelection(selection);
-        minR = bounds.minR;
-        maxR = bounds.maxR;
-        minC = bounds.minC;
-        maxC = bounds.maxC;
-    } else if (selection.type === "row") {
-        minR = selection.startRowIdx!;
-        maxR = selection.startRowIdx!;
-    } else if (selection.type === "column") {
-        minC = selection.startColIdx!;
-        maxC = selection.startColIdx!;
+    if (selection.startRowIdx !== undefined && selection.endRowIdx !== undefined && selection.startColIdx !== undefined && selection.endColIdx !== undefined) {
+        minR = Math.min(selection.startRowIdx, selection.endRowIdx);
+        maxR = Math.max(selection.startRowIdx, selection.endRowIdx);
+        minC = Math.min(selection.startColIdx, selection.endColIdx);
+        maxC = Math.max(selection.startColIdx, selection.endColIdx);
     }
 
     let currentR = selection.activeRowIdx !== undefined ? selection.activeRowIdx : (selection.startRowIdx ?? minR);
     let currentC = selection.activeColIdx !== undefined ? selection.activeColIdx : (selection.startColIdx ?? minC);
 
-    if (selection.type === "row") {
+    if (minC === 0 && maxC === maxCols - 1 && minR === maxR) {
         currentC += 1; 
     } else {
         currentR += rowDelta;

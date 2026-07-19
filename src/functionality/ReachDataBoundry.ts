@@ -1,7 +1,7 @@
-import type { Workbook } from "../core/Workbook.js";
-import type { InteractionHandler } from "../eventsHandler/InteractionHandler.js";
-import type { CanvasRenderer } from "../rendering/CanvasRenderer.js";
 import type { Viewport } from "../rendering/Viewport.js";
+import type { Workbook } from "../core/Workbook.js";
+import type { CanvasRenderer } from "../rendering/CanvasRenderer.js";
+import type { InteractionHandler } from "../eventsHandler/InteractionHandler.js";
 import { adjustViewportToCell } from "../utils/AdjustViewportToCell.js";
 
 export class ReachDataBoundry
@@ -9,7 +9,7 @@ export class ReachDataBoundry
     constructor(
         private viewport: Viewport,
         private workbook: Workbook,
-        private renderer:  CanvasRenderer
+        private renderer: CanvasRenderer
     ){}
 
     public jumpToDataBoundary(rowDelta: number, colDelta: number, handler: InteractionHandler): void 
@@ -23,21 +23,18 @@ export class ReachDataBoundry
         const checkCellFilled = (rIdx: number, cIdx: number): boolean => 
         {
             const row = this.workbook.rows[rIdx];
-
             const col = this.workbook.columns[cIdx];
 
             if (!row || !col) 
                 return false;
 
             const cell = this.workbook.getCell(row.id, col.name);
-
             return Boolean(cell && cell.text.trim().length > 0);
         };
 
         let firstNextR = currentR + rowDelta;
         let firstNextC = currentC + colDelta;
 
-        // if it goes to out of boundry return it
         if (firstNextR < 0 || firstNextR >= this.workbook.rows.length || firstNextC < 0 || firstNextC >= this.workbook.columns.length)
             return;
 
@@ -111,17 +108,15 @@ export class ReachDataBoundry
         if (targetRow && targetCol) 
         {
             handler.selection = {
-                type: "cell",
-                rowId: targetRow.id,
-                colName: targetCol.name,
                 startRowIdx: currentR,
                 startColIdx: currentC,
                 endRowIdx: currentR,
-                endColIdx: currentC
+                endColIdx: currentC,
+                activeRowIdx: currentR,
+                activeColIdx: currentC
             };
             adjustViewportToCell(currentR, currentC, this.renderer, this.workbook, this.viewport);
             handler.updateView();
         }
     }
-
 }

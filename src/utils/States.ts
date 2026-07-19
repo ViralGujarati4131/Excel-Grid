@@ -22,36 +22,12 @@ export interface ColumnResizeState
     startSize: number;
 }
 
-export interface CellSelectionState
+export interface SelectionState 
 {
-    rowId: number | null;
-    colName: string | null;
-    startRowIdx: number;
-    startColIdx: number;
-    endRowIdx: number;
-    endColIdx: number;
-    activeRowIdx: number;
-    activeColIdx: number;
-}
-
-export interface RowSelectionState 
-{
-    rowId: number | null;
-    startRowIdx: number;
-    startColIdx: number;
-    endRowIdx: number;
-    endColIdx: number;
-    activeRowIdx: number;
-    activeColIdx: number;
-}
-
-export interface ColumnSelectionState 
-{
-    colName: string | null;
-    startRowIdx: number;
-    startColIdx: number;
-    endRowIdx: number;
-    endColIdx: number;
-    activeRowIdx: number;
-    activeColIdx: number;
+    startRowIdx?: number;
+    startColIdx?: number;
+    endRowIdx?: number;
+    endColIdx?: number;
+    activeRowIdx?: number;
+    activeColIdx?: number;
 }

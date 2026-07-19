@@ -3,14 +3,14 @@ import type { InteractionHandler } from "../eventsHandler/InteractionHandler.js"
 import type { CanvasRenderer } from "../rendering/CanvasRenderer.js";
 import type { Viewport } from "../rendering/Viewport.js";
 import { adjustViewportToCell } from "../utils/AdjustViewportToCell.js";
-import { getNextCellWithinRange } from "../utils/getNextCellInRange.js";
+import { getNextCellWithinRange } from "../utils/GetNextCellInRange.js";
 
 export class CellMove
 {
     constructor(
         private viewport: Viewport,
         private workbook: Workbook,
-        private renderer:  CanvasRenderer
+        private renderer: CanvasRenderer
     ){}
 
     // normal move in grid
@@ -43,12 +43,12 @@ export class CellMove
         if (row && col) 
         {
             handler.selection = {
-                type: "cell", rowId: row.id, 
-                colName: col.name,
                 startRowIdx: newRowIdx, 
                 startColIdx: newColIdx,
                 endRowIdx: newRowIdx, 
-                endColIdx: newColIdx
+                endColIdx: newColIdx,
+                activeRowIdx: newRowIdx,
+                activeColIdx: newColIdx
             };
             // make view port visible if cell selection go out of visible boundry
             adjustViewportToCell(newRowIdx, newColIdx, this.renderer, this.workbook, this.viewport);
@@ -58,7 +58,7 @@ export class CellMove
 
     public moveSelectionInsideRange(handler: InteractionHandler)
     {
-        if (!handler.selection || handler.selection.type == "cell") 
+        if (!handler.selection) 
             return;
 
         const nextCell = getNextCellWithinRange(
@@ -67,17 +67,8 @@ export class CellMove
         
         handler.selection.activeRowIdx = nextCell.rowIdx;
         handler.selection.activeColIdx = nextCell.colIdx;
-        
-        const nextRow = handler.workbook.rows[nextCell.rowIdx];
-        const nextCol = handler.workbook.columns[nextCell.colIdx];
-        
-        if (nextRow && nextCol) {
-            handler.selection.rowId = nextRow.id;
-            handler.selection.colName = nextCol.name;
-        }
 
-        adjustViewportToCell(nextCell.rowIdx, nextCell.colIdx, this.renderer, handler.workbook, this.viewport); //
+        adjustViewportToCell(nextCell.rowIdx, nextCell.colIdx, this.renderer, handler.workbook, this.viewport);
         handler.updateView();
     }
-
 }

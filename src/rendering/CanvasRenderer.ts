@@ -1,8 +1,7 @@
 import type { IRenderer } from "./IRenderer.js";
 import { Workbook } from "../core/Workbook.js";
 import { Viewport } from "./Viewport.js";
-import type { SelectionState } from "../eventsHandler/InteractionHandler.js";
-import type { CellSelectionState, ColumnSelectionState, RowSelectionState } from "../utils/States.js";
+import type { SelectionState } from "../utils/States.js";
 
 export class CanvasRenderer implements IRenderer 
 {
@@ -51,8 +50,10 @@ export class CanvasRenderer implements IRenderer
     }
 
     // this function will render the header, cells and multicell selection border
-    public render(workbook: Workbook, viewport: Viewport, selection: SelectionState | null,cellState: CellSelectionState | null,rowState: RowSelectionState | null,columnState: ColumnSelectionState | null): void
-     {
+    public render(workbook: Workbook, viewport: Viewport, selection: SelectionState | null): void
+    {
+        console.log("hello");
+        
         const ctx = this.ctx;
         ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         ctx.textBaseline = "middle";
@@ -85,14 +86,14 @@ export class CanvasRenderer implements IRenderer
         const endCol = Math.min(workbook.columns.length, startCol + Math.ceil(this.canvas.width / 50) + 1);
         const endRow = Math.min(workbook.rows.length, startRow + Math.ceil(this.canvas.height / 20) + 1);  
 
-        this.renderCells(workbook, viewport, startRow, endRow, startCol, endCol, selection,cellState,rowState,columnState);
-        this.renderHeaders(workbook, viewport, startRow, endRow, startCol, endCol, selection,cellState,rowState,columnState);
+        this.renderCells(workbook, viewport, startRow, endRow, startCol, endCol, selection);
+        this.renderHeaders(workbook, viewport, startRow, endRow, startCol, endCol, selection);
         this.renderOriginCorner(viewport);
         this.renderRangeOuterOutline(workbook, viewport, selection);
     }
 
-    // this method draw the header for the row and column and also high light it if it selected raw | column | range
-    private renderHeaders(workbook: Workbook, viewport: Viewport, sR: number, eR: number, sC: number, eC: number, selection: SelectionState | null,cellState: CellSelectionState | null,rowState: RowSelectionState | null,columnState: ColumnSelectionState | null): void 
+    // this method draw the header for the row and column and also high light it if it selected
+    private renderHeaders(workbook: Workbook, viewport: Viewport, sR: number, eR: number, sC: number, eC: number, selection: SelectionState | null): void 
     {
         const ctx = this.ctx;
         ctx.strokeStyle = "#b4b4b4";
@@ -108,95 +109,34 @@ export class CanvasRenderer implements IRenderer
         for (let c = sC; c < eC; c++) 
         {
             const col = workbook.columns[c];
-
-            if (!col) 
-                continue;
+            if (!col) continue;
 
             const x = viewport.headerWidth + this.getColX(workbook, c) - viewport.scrollX;
-            let isSelectedColumn = false;
-            let isSelectedRange = false;
-            let isSelectedColumnRange = false;
-            let isSelectedCell = false;
+            let isSelected = false;
 
-            if (selection) 
+            if (selection && selection.startColIdx !== undefined && selection.endColIdx !== undefined) 
             {
-                if(selection.type === "cell" && selection.colName === col.name)
-                    isSelectedCell = true;
-
-                if (selection.type === "column" && selection.colName === col.name) 
-                    isSelectedColumn = true;
-
-                if (selection.type === "range" && selection.startColIdx !== undefined && selection.endColIdx !== undefined) 
-                {
-                    const minC = Math.min(selection.startColIdx, selection.endColIdx);
-                    const maxC = Math.max(selection.startColIdx, selection.endColIdx);
-
-                    if (c >= minC && c <= maxC) 
-                        isSelectedRange = true;
-                }
-
-                if (selection.type === "columnRange" && selection.startColIdx !== undefined && selection.endColIdx !== undefined) 
-                {
-                    
-                    const minC = Math.min(selection.startColIdx, selection.endColIdx);
-                    const maxC = Math.max(selection.startColIdx, selection.endColIdx);
-
-                    if (c >= minC && c <= maxC) 
-                        isSelectedColumnRange = true;
-                }
-
+                const minC = Math.min(selection.startColIdx, selection.endColIdx);
+                const maxC = Math.max(selection.startColIdx, selection.endColIdx);
+                if (c >= minC && c <= maxC) isSelected = true;
             }
             
-            if(isSelectedColumn || isSelectedRange || isSelectedColumnRange || isSelectedCell)
-            {
-                if(isSelectedColumn || isSelectedColumnRange)
-                {
-                    ctx.fillStyle = "#107C41";
-                }
-                if(isSelectedRange || isSelectedCell)
-                {
-                    ctx.fillStyle = "#bff5cf";
-                }
-            }
-            else
-            {
-                ctx.fillStyle = "#f3f3f3";
-            }
+            ctx.fillStyle = isSelected ? "rgba(161,98,7,0.14)" : "#f5f4f0";
             ctx.fillRect(x, 0, col.width, viewport.headerHeight);
             ctx.strokeRect(x, 0, col.width, viewport.headerHeight);
             
-            if(isSelectedColumn || isSelectedRange || isSelectedColumnRange || isSelectedCell)
+            if (isSelected)
             {
-                if(isSelectedColumn || isSelectedColumnRange)
-                {
-                    ctx.fillStyle = "#E2FAE9";
-                }
-                if(isSelectedRange || isSelectedCell)
-                {                    
-                    ctx.fillStyle = "#107C41";
-
-                    if(selection?.rowId != 1)
-                    {
-                        ctx.save();
-                        ctx.beginPath();
-                        ctx.moveTo(x, viewport.headerHeight - 2);        
-                        ctx.lineTo(x + col.width, viewport.headerHeight - 2); 
-                        ctx.strokeStyle = "#107C41";      
-                        ctx.lineWidth = 2;                 
-                        ctx.stroke();
-                        ctx.restore();  
-                    }
-                }
+                ctx.fillStyle = "#854d0e";
             }
             else
             {
                 ctx.fillStyle = "#000000";
             }
-            ctx.font = isSelectedColumn || isSelectedColumnRange || isSelectedRange ? "bold 12px Arial" : "12px Arial";
+            ctx.font = isSelected ? "bold 12px Arial" : "12px Arial";
             ctx.fillText(col.name, x + col.width / 2, viewport.headerHeight / 2);
         }
         ctx.restore();
-
 
         // row header display and selection state of it
         ctx.save();
@@ -207,97 +147,38 @@ export class CanvasRenderer implements IRenderer
         for (let r = sR; r < eR; r++) 
         {
             const row = workbook.rows[r];
-
-            if (!row) 
-                continue;
+            if (!row) continue;
 
             const y = viewport.headerHeight + this.getRowY(workbook, r) - viewport.scrollY;
-            let isSelectedRow = false;
-            let isSelectedRange = false;
-            let isSelectedRowRange = false;
-            let isSelectedCell = false;
+            let isSelected = false;
 
-            if (selection) 
+            if (selection && selection.startRowIdx !== undefined && selection.endRowIdx !== undefined) 
             {
-                if (selection.type === "cell" && selection.rowId === row.id) 
-                    isSelectedCell = true;
-
-                if (selection.type === "row" && selection.rowId === row.id) 
-                    isSelectedRow = true;
-
-                if (selection.type === "range" && selection.startRowIdx !== undefined && selection.endRowIdx !== undefined) 
-                {
-                    const minR = Math.min(selection.startRowIdx, selection.endRowIdx);
-                    const maxR = Math.max(selection.startRowIdx, selection.endRowIdx);
-
-                    if (r >= minR && r <= maxR) 
-                        isSelectedRange = true;
-                }
-
-                if (selection.type === "rowRange" && selection.startRowIdx !== undefined && selection.endRowIdx !== undefined) 
-                {
-                    const minR = Math.min(selection.startRowIdx, selection.endRowIdx);
-                    const maxR = Math.max(selection.startRowIdx, selection.endRowIdx);
-
-                    if (r >= minR && r <= maxR) 
-                        isSelectedRowRange = true;
-                }
+                const minR = Math.min(selection.startRowIdx, selection.endRowIdx);
+                const maxR = Math.max(selection.startRowIdx, selection.endRowIdx);
+                if (r >= minR && r <= maxR) isSelected = true;
             }
 
-            if(isSelectedRow || isSelectedRange || isSelectedRowRange || isSelectedCell)
-            {
-                if(isSelectedRow || isSelectedRowRange)
-                {
-                    ctx.fillStyle = "#107C41";
-                }
-                if(isSelectedRange || isSelectedCell)
-                {
-                    ctx.fillStyle = "#bff5cf";
-                }
-            }
-            else
-            {
-                ctx.fillStyle = "#f3f3f3";
-            }
+            ctx.fillStyle = isSelected ? "rgba(161,98,7,0.14)" : "#f5f4f0";
             ctx.fillRect(0, y, viewport.headerWidth, row.height);
             ctx.strokeRect(0, y, viewport.headerWidth, row.height);
             
-           
-             if(isSelectedRow || isSelectedRange || isSelectedRowRange || isSelectedCell)
+            if (isSelected)
             {
-                if(isSelectedRow || isSelectedRowRange)
-                {
-                    ctx.fillStyle = "#E2FAE9";
-                }
-                if(isSelectedRange || isSelectedCell)
-                {
-                    ctx.fillStyle = "#107C41";
-
-                    if(selection?.startColIdx != 0)
-                    {
-                        ctx.save();
-                        ctx.beginPath();
-                        ctx.moveTo(viewport.headerWidth - 2, y);        
-                        ctx.lineTo(viewport.headerWidth - 2, y + row.height); 
-                        ctx.strokeStyle = "#107C41";      
-                        ctx.lineWidth = 2;                 
-                        ctx.stroke();
-                        ctx.restore();
-                    }
-                }
+                ctx.fillStyle = "#854d0e";
             }
             else
             {
                 ctx.fillStyle = "#000000";
             }
-            ctx.font = isSelectedRow || isSelectedRange ? "bold 12px Arial" : "12px Arial";
+            ctx.font = isSelected ? "bold 12px Arial" : "12px Arial";
             ctx.fillText(row.id.toString(), viewport.headerWidth / 2, y + row.height / 2);
         }
         ctx.restore();
     }
 
     // this is the method to show the cells in row cloumn and selection of cells and show the text of cell
-    private renderCells(workbook: Workbook, viewport: Viewport, sR: number, eR: number, sC: number, eC: number, selection: SelectionState | null, cellState: CellSelectionState | null,rowState: RowSelectionState | null,columnState: ColumnSelectionState | null): void 
+    private renderCells(workbook: Workbook, viewport: Viewport, sR: number, eR: number, sC: number, eC: number, selection: SelectionState | null): void 
     {    
         const ctx = this.ctx;
 
@@ -309,69 +190,40 @@ export class CanvasRenderer implements IRenderer
         for (let r = sR; r < eR; r++) 
         {
             const row = workbook.rows[r];
-
-            if (!row) 
-                continue;
+            if (!row) continue;
 
             const y = viewport.headerHeight + this.getRowY(workbook, r) - viewport.scrollY;
 
             for (let c = sC; c < eC; c++) 
             {
                 const col = workbook.columns[c];
-                if (!col) 
-                    continue;
+                if (!col) continue;
 
                 const cell = workbook.getCell(row.id, col.name);
-                if (!cell) 
-                    continue;
+                if (!cell) continue;
 
                 const x = viewport.headerWidth + this.getColX(workbook, c) - viewport.scrollX;
 
                 ctx.fillStyle = cell.style.backgroundColor;
                 ctx.fillRect(x, y, col.width, row.height);
 
-                if (selection) 
+                if (selection && selection.startRowIdx !== undefined && selection.endRowIdx !== undefined && selection.startColIdx !== undefined && selection.endColIdx !== undefined) 
                 {
-                    const currentActiveR = selection.activeRowIdx !== undefined ? selection.activeRowIdx : selection.startRowIdx;
-                    const currentActiveC = selection.activeColIdx !== undefined ? selection.activeColIdx : selection.startColIdx;
-                    let isCellSelected = false;
+                    const minR = Math.min(selection.startRowIdx, selection.endRowIdx);
+                    const maxR = Math.max(selection.startRowIdx, selection.endRowIdx);
+                    const minC = Math.min(selection.startColIdx, selection.endColIdx);
+                    const maxC = Math.max(selection.startColIdx, selection.endColIdx);
 
-                    // if entire column selected
-                    if ((selection.type === "column") && selection.colName === col.name) 
+                    if (r >= minR && r <= maxR && c >= minC && c <= maxC) 
                     {
-                        isCellSelected = true;
-                    } 
-                    // if entire row is selected
-                    else if (selection.type === "row" && selection.rowId === row.id) 
-                    {
-                        isCellSelected = true;
-                    } 
-                    // if range of cell | row | column is selected 
-                    else if ((selection.type === "range" || selection.type === "columnRange" || selection.type === "rowRange") && selection.startRowIdx !== undefined && selection.endRowIdx !== undefined && selection.startColIdx !== undefined && selection.endColIdx !== undefined) 
-                    {
-                        const minR = Math.min(selection.startRowIdx, selection.endRowIdx);
-                        const maxR = Math.max(selection.startRowIdx, selection.endRowIdx);
-                        const minC = Math.min(selection.startColIdx, selection.endColIdx);
-                        const maxC = Math.max(selection.startColIdx, selection.endColIdx);
-
-                        if (r >= minR && r <= maxR && c >= minC && c <= maxC) 
-                        {
-                            isCellSelected = true;
-                        }
-                    }
-                    if (isCellSelected) 
-                    {
-                        if (r === currentActiveR && c === currentActiveC) 
-                        {
-                            ctx.fillStyle = "#ffffff"; 
-                        } 
-                        else 
-                        {
-                            ctx.fillStyle = "#E2F0E9"; 
-                        }
+                        const currentActiveR = selection.activeRowIdx !== undefined ? selection.activeRowIdx : selection.startRowIdx;
+                        const currentActiveC = selection.activeColIdx !== undefined ? selection.activeColIdx : selection.startColIdx;
+                        
+                        ctx.fillStyle = (r === currentActiveR && c === currentActiveC) ? "#ffffff" : "rgba(161,98,7,0.09)"; 
                         ctx.fillRect(x, y, col.width, row.height);
                     }
                 }
+                
                 ctx.strokeStyle = "#e0e0e0";
                 ctx.strokeRect(x, y, col.width, row.height);
 
@@ -382,24 +234,15 @@ export class CanvasRenderer implements IRenderer
                     ctx.textAlign = cell.style.align;
                     ctx.fillText(cell.text, x + 6, y + row.height / 2);
                 }
-
-                // only one cell is selected
-                if (selection && selection.type === "cell" && selection.rowId === row.id && selection.colName === col.name)
-                {
-                    ctx.strokeStyle = "#107C41";
-                    ctx.lineWidth = 2;
-                    ctx.strokeRect(x + 1, y + 1, col.width - 2, row.height - 2);
-                    ctx.lineWidth = 1;
-                }
             }
         }
         ctx.restore();
     }
 
-    // this will draw the selection broder for multi row | column | cell selection
+    // this will draw the selection broder for multiselection
     private renderRangeOuterOutline(workbook: Workbook, viewport: Viewport, selection: SelectionState | null): void 
     {
-        if (!selection || selection.type === "cell"|| selection.startRowIdx === undefined || selection.endRowIdx === undefined || selection.startColIdx === undefined || selection.endColIdx === undefined)
+        if (!selection || selection.startRowIdx === undefined || selection.endRowIdx === undefined || selection.startColIdx === undefined || selection.endColIdx === undefined)
             return;
 
         const ctx = this.ctx;
@@ -431,7 +274,7 @@ export class CanvasRenderer implements IRenderer
         ctx.rect(viewport.headerWidth, viewport.headerHeight, this.canvas.width - viewport.headerWidth, this.canvas.height - viewport.headerHeight);
         ctx.clip();
 
-        ctx.strokeStyle = "#107C41";
+        ctx.strokeStyle = "#a16207";
         ctx.lineWidth = 2;
         ctx.strokeRect(startX + 1, startY + 1, totalWidth - 2, totalHeight - 2);
 
@@ -445,7 +288,7 @@ export class CanvasRenderer implements IRenderer
         const anchorRow = workbook.rows[currentActiveR];
         if (anchorCol && anchorRow) 
         {
-            ctx.strokeStyle = "#107C41";
+            ctx.strokeStyle = "#a16207";
             ctx.lineWidth = 1;
             ctx.strokeRect(anchorX + 1, anchorY + 1, anchorCol.width - 2, anchorRow.height - 2);
         }

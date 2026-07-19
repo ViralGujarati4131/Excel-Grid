@@ -8,6 +8,9 @@ export class Workbook
     public columns: Column[] = [];
     private cells: Map<string, Cell> = new Map();
 
+    private cachedJsonRecords: any[] = [];
+    private cachedHeaders: string[] = [];
+
     // max rows
     private readonly MAX_ROWS = 100000;
     
@@ -52,7 +55,38 @@ export class Workbook
 
                 const cell = new Cell(row, col);
                 this.cells.set(cell.id, cell);
+
+                this.hydrateCellFromCache(cell, r, c);
             }
+        }
+    }
+
+    private hydrateCellFromCache(cell: Cell, rowIndex: number, colIndex: number): void
+    {
+        if (this.cachedJsonRecords.length === 0) return;
+        if (cell.row.id === 1) 
+        {
+            if (colIndex < this.cachedHeaders.length) 
+            {
+                cell.text = this.cachedHeaders[colIndex]!;
+                cell.style.font = "bold 13px Arial";
+                cell.style.backgroundColor = "#eaeaea";
+                cell.style.align = "left";
+            }
+            return;
+        }
+
+        const recordIndex = cell.row.id - 2;
+        const record = this.cachedJsonRecords[recordIndex];
+        if (!record) return;
+
+        const key = this.cachedHeaders[colIndex];
+        if (key) 
+        {
+            const value = record[key];
+            cell.text = value != null && value !== ""
+                ? value.toString()
+                : (typeof value === "string" ? "null" : `${recordIndex + 1}`);
         }
     }
 
@@ -171,61 +205,87 @@ export class Workbook
         };
     }
 
-    // this is to store the json values into the cell text 
-    public loadJsonRecordSet(records2: any[],headerNames: string[]): void 
-    {
-        const targetRowCount = records2.length;
-        const requiredRows = targetRowCount + 1; 
+    // // this is to store the json values into the cell text 
+    // public loadJsonRecordSet(records2: any[],headerNames: string[]): void 
+    // {
+    //     const targetRowCount = records2.length;
+    //     const requiredRows = targetRowCount + 1; 
 
-        if (this.rows.length < requiredRows) 
-        {
-            this.expandRows(requiredRows - this.rows.length);
-        }        
+    //     if (this.rows.length < requiredRows) 
+    //     {
+    //         this.expandRows(requiredRows - this.rows.length);
+    //     }        
 
-        const requiredColumns = headerNames.length;        
+    //     const requiredColumns = headerNames.length;        
 
-        if (this.columns.length < requiredColumns) 
-        {
-            this.expandColumns(requiredColumns - this.columns.length);
-        }
+    //     if (this.columns.length < requiredColumns) 
+    //     {
+    //         this.expandColumns(requiredColumns - this.columns.length);
+    //     }
 
         
-        for (let c = 0; c < headerNames.length; c++) 
-        {
-            const cell = this.getCell(1, this.columns[c]!.name);
+    //     for (let c = 0; c < headerNames.length; c++) 
+    //     {
+    //         const cell = this.getCell(1, this.columns[c]!.name);
 
-            if (cell) 
-            {
-                cell.text = headerNames[c]!;
-                cell.style.font = "bold 13px Arial";
-                cell.style.backgroundColor = "#eaeaea";
-                cell.style.align = "left";
-            }
-        }
+    //         if (cell) 
+    //         {
+    //             cell.text = headerNames[c]!;
+    //             cell.style.font = "bold 13px Arial";
+    //             cell.style.backgroundColor = "#eaeaea";
+    //             cell.style.align = "left";
+    //         }
+    //     }
 
-        for (let i = 0; i < requiredRows; i++) 
-        {
-            const record = records2[i];
+    //     for (let i = 0; i < requiredRows; i++) 
+    //     {
+    //         const record = records2[i];
             
-            if (!record) 
-                continue; 
+    //         if (!record) 
+    //             continue; 
 
-            const rowId = i + 2; 
+    //         const rowId = i + 2; 
 
-            headerNames.forEach((key, j) => {
-                const colName = this.columns[j]?.name;
-                const cell = this.getCell(rowId, colName!);
+    //         headerNames.forEach((key, j) => {
+    //             const colName = this.columns[j]?.name;
+    //             const cell = this.getCell(rowId, colName!);
 
-                if (cell) {
-                    const value = record[key as keyof typeof record];
+    //             if (cell) {
+    //                 const value = record[key as keyof typeof record];
                     
-                    cell.text = value != null && value !== ""
-                        ? value.toString()
-                        : (typeof value === "string"
-                            ? "null" 
-                            : `${i + 1}`);
+    //                 cell.text = value != null && value !== ""
+    //                     ? value.toString()
+    //                     : (typeof value === "string"
+    //                         ? "null" 
+    //                         : `${i + 1}`);
+    //             }
+    //         });
+    //     }
+    // }
+
+    public loadJsonRecordSet(records2: any[], headerNames: string[]): void 
+    {
+        this.cachedJsonRecords = records2;
+        this.cachedHeaders = headerNames;
+
+        const initialRequiredRows = Math.min(this.rows.length, records2.length + 1);
+        const initialRequiredCols = Math.min(this.columns.length, headerNames.length);
+
+        for (let r = 0; r < initialRequiredRows; r++) 
+        {
+            for (let c = 0; c < initialRequiredCols; c++) 
+            {
+                const row = this.rows[r];
+                const col = this.columns[c];
+                if (row && col) 
+                {
+                    const cell = this.getCell(row.id, col.name);
+                    if (cell) 
+                    {
+                        this.hydrateCellFromCache(cell, r, c);
+                    }
                 }
-            });
+            }
         }
     }
 

@@ -17,8 +17,12 @@ export class InputKeyboardHandler
             e.stopPropagation(); 
             this.editor.getElement().blur();
             
+            const isMultiCell = handler.selection && 
+                (handler.selection.startRowIdx !== handler.selection.endRowIdx || 
+                 handler.selection.startColIdx !== handler.selection.endColIdx);
+
             // move inside if the range selection only
-            if (handler.selection && handler.selection.type !== "cell") 
+            if (handler.selection && isMultiCell) 
             {
                 this.cellMove.moveSelectionInsideRange(handler);
             } 

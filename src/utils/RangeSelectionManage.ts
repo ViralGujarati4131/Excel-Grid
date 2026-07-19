@@ -1,4 +1,4 @@
-import type { SelectionState } from "../eventsHandler/InteractionHandler.js";
+import type { SelectionState } from "../utils/States.js";
 
 export class RangeSelectionManage 
 {

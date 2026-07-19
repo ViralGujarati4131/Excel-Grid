@@ -122,6 +122,7 @@ Then open `index.html` with **Live Server** in VS Code.
 │   │   ├── GridKeyboardHandler.ts
 │   │   ├── GridMouseHandler.ts
 │   │   ├── GridWindowHandler.ts
+│   │   ├── InputKeyboardHandler.ts
 │   │   └── InteractionHandler.ts
 │   ├── functionality
 │   │   ├── CanvasScroll.ts
@@ -129,9 +130,10 @@ Then open `index.html` with **Live Server** in VS Code.
 │   │   ├── CellEditing.ts
 │   │   ├── CellMove.ts
 │   │   ├── CellRangeSelection.ts
+│   │   ├── ColumnResize.ts
 │   │   ├── FileUpload.ts
 │   │   ├── ReachDataBoundry.ts
-│   │   └── RowCoulmnResizeManager.ts
+│   │   └── RowResize.ts
 │   ├── main.ts
 │   ├── rendering
 │   │   ├── CanvasRenderer.ts
@@ -147,11 +149,14 @@ Then open `index.html` with **Live Server** in VS Code.
 │   │       └── WriteTextCommand.ts
 │   └── utils
 │       ├── AdjustViewportToCell.ts
+│       ├── CheckColumnHoverEdge.ts
+│       ├── CheckRowHoverEdge.ts
 │       ├── GetAerrowKey.ts
 │       ├── GetCellByCoordination.ts
+│       └── GetNextCellInRange.ts
 │       ├── RangeSelectionManage.ts
+│       ├── States.ts
 │       ├── UpdateRibbonMetrices.ts
-│       └── getNextCellInRange.ts
 └── tsconfig.json
 
 ```

@@ -11,16 +11,15 @@ export class CellEditing
     constructor(
         private viewport: Viewport,
         private workbook: Workbook,
-        private renderer:  CanvasRenderer,
+        private renderer: CanvasRenderer,
         private editor: CellEditor,
         private history: CommandHistory
     ){}
 
     // render the inputBox on cell
-    public ActiveCell(handler: InteractionHandler,e: KeyboardEvent | MouseEvent)
+    public ActiveCell(handler: InteractionHandler, e: KeyboardEvent | MouseEvent)
     {
         // Delete when cell is only select not active
-
         if (
             !handler.selection ||
             e.ctrlKey || 
@@ -51,11 +50,6 @@ export class CellEditing
         {
             return;
         } 
-
-        const validTypes = ["cell", "range", "columnRange", "rowRange", "row","column"];
-        if (!validTypes.includes(handler.selection.type)) {
-            return;
-        }
 
         const rect = this.renderer.getCanvasElement().getBoundingClientRect();
 
@@ -124,7 +118,7 @@ export class CellEditing
                     // store the written text as a command for maintain undo redo state
                     if (oldText !== newText) 
                     {
-                        const cmd = new WriteTextCommand(cell, newText, oldText, rIdx,cIdx);
+                        const cmd = new WriteTextCommand(cell, newText, oldText, rIdx, cIdx);
                         cmd.execute();
                         this.history.add(cmd);
                     }
@@ -135,8 +129,7 @@ export class CellEditing
         handler.updateView();
     }
     
-
-    public CancelCellEditing(e: KeyboardEvent,handler: InteractionHandler)
+    public CancelCellEditing(e: KeyboardEvent, handler: InteractionHandler)
     {
         if (this.editor.getElement().style.display !== "none") 
         {
@@ -148,5 +141,4 @@ export class CellEditing
             return;
         }
     }
-
 }
