@@ -1,6 +1,7 @@
 import type { Workbook } from "../core/Workbook.js";
 import type { CanvasRenderer } from "../rendering/CanvasRenderer.js";
 import type { Viewport } from "../rendering/Viewport.js";
+import { ColumnAttributes, RowAttributes } from "./Constants.js";
 
 export function adjustViewportToCell(rowIdx: number, colIdx: number,renderer: CanvasRenderer,workbook: Workbook,viewport: Viewport): void 
 {
@@ -8,11 +9,11 @@ export function adjustViewportToCell(rowIdx: number, colIdx: number,renderer: Ca
     
     const cellLeft = renderer.getColX(workbook, colIdx);
     const col = workbook.columns[colIdx];
-    const cellRight = cellLeft + (col ? col.width : 100);
+    const cellRight = cellLeft + (col ? col.width : ColumnAttributes.DefaultWidth);
 
     const cellTop = renderer.getRowY(workbook, rowIdx);
     const row = workbook.rows[rowIdx];
-    const cellBottom = cellTop + (row ? row.height : 30);
+    const cellBottom = cellTop + (row ? row.height : RowAttributes.DefaultHeight);
 
     const viewWidth = canvas.width - viewport.headerWidth;
     const viewHeight = canvas.height - viewport.headerHeight;

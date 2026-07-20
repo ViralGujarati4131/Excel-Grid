@@ -2,6 +2,7 @@ import type { Workbook } from "../core/Workbook.js";
 import type { InteractionHandler } from "../eventsHandler/InteractionHandler.js";
 import type { CanvasRenderer } from "../rendering/CanvasRenderer.js";
 import type { Viewport } from "../rendering/Viewport.js";
+import { ColumnAttributes, RowAttributes, Trigger_Threshold } from "../utils/Constants.js";
 
 export class CanvasScroll
 {
@@ -25,12 +26,12 @@ export class CanvasScroll
             currentWorkbookHeight += row.height;
 
         const canvasElement = this.renderer.getCanvasElement();
-        const triggerThresholdPixels = 300;
+        const triggerThresholdPixels = Trigger_Threshold;
 
          // add the row dynamically when near to reach at end of the scroll
         if ((this.viewport.scrollY + canvasElement.height) > (currentWorkbookHeight - triggerThresholdPixels)) 
         {
-            this.workbook.expandRows(100);
+            this.workbook.expandRows(RowAttributes.Expand_50_Row);
             currentWorkbookHeight = 0;
 
             for (const row of this.workbook.rows) 
@@ -40,7 +41,7 @@ export class CanvasScroll
          // add the column dynamically when near to reach at end of the scroll
         if ((this.viewport.scrollX + canvasElement.width) > (currentWorkbookWidth - triggerThresholdPixels)) 
         {
-            this.workbook.expandColumns(30);
+            this.workbook.expandColumns(ColumnAttributes.Expand_30_Column);
             currentWorkbookWidth = 0;
 
             for (const col of this.workbook.columns) 

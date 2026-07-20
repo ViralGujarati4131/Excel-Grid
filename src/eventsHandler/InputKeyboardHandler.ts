@@ -1,5 +1,6 @@
 import type { CellEditor } from "../components/CellEditor.js";
 import type { CellMove } from "../functionality/CellMove.js";
+import { ConstantKeys } from "../utils/Constants.js";
 import type { InteractionHandler } from "./InteractionHandler.js";
 
 export class InputKeyboardHandler
@@ -12,7 +13,7 @@ export class InputKeyboardHandler
 
     public handleKeyDown(e: KeyboardEvent, handler: InteractionHandler)
     {
-        if (e.key === "Enter") 
+        if (e.key === ConstantKeys.ENTER_KEY) 
         {
             e.stopPropagation(); 
             this.editor.getElement().blur();

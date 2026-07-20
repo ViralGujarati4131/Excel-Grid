@@ -6,6 +6,7 @@ import { CellRangeSelection } from "../functionality/CellRangeSelection.js";
 import { ReachDataBoundry } from "../functionality/ReachDataBoundry.js";
 import { CanvasUndoRedo } from "../functionality/CanvasUndoRedo.js";
 import { getMovementDelta } from "../utils/GetAerrowKey.js";
+import { ConstantKeys } from "../utils/Constants.js";
 
 export class GridKeyboardHandler {
 
@@ -21,7 +22,7 @@ export class GridKeyboardHandler {
     public handleGlobalKeyDown(e: KeyboardEvent, handler: InteractionHandler): void 
     {
         // to edit the existing text and to edit new cell
-        if(e.key === "F2")
+        if(e.key === ConstantKeys.F2_KEY)
         {
             this.cellEditing.ActiveCell(handler, e);
         }
@@ -29,7 +30,7 @@ export class GridKeyboardHandler {
         // to cancel the writing in cell and to cancel the editing      
         if (this.editor.getElement().style.display !== "none")
         {  
-            if(e.key === "Escape")
+            if(e.key === ConstantKeys.ESCAPE_KEY)
             {
                 this.cellEditing.CancelCellEditing(e, handler);
             }
@@ -38,14 +39,14 @@ export class GridKeyboardHandler {
 
         // undo the written text and move selection of cell accordingly
         // column or row resize undo
-        if ((e.ctrlKey) && e.key.toLowerCase() === "z") 
+        if ((e.ctrlKey) && e.key.toLowerCase() === ConstantKeys.Z_KEY) 
         {
             this.canvasUndoRedo.canvasUndo(e, handler);
         }
 
         // redo the erase text and move selection cell accordingly
         // redo the column or row resize 
-        if ((e.ctrlKey) && e.key.toLowerCase() === "y") 
+        if ((e.ctrlKey) && e.key.toLowerCase() === ConstantKeys.Y_KEY) 
         {
             this.canvasUndoRedo.canvasRedo(e, handler);
         }
@@ -58,20 +59,20 @@ export class GridKeyboardHandler {
             (handler.selection.startRowIdx !== handler.selection.endRowIdx || 
              handler.selection.startColIdx !== handler.selection.endColIdx);
 
-        if (e.key === "Enter" && handler.selection && isMultiCell) 
+        if (e.key === ConstantKeys.ENTER_KEY && handler.selection && isMultiCell) 
         {
             this.cellMove.moveSelectionInsideRange(handler);
             e.preventDefault();
             return;
         }
 
-        if (handler.selection && (e.key.startsWith("Arrow") || e.key === "Enter")) 
+        if (handler.selection && (e.key.startsWith(ConstantKeys.ARROW_KEY) || e.key === ConstantKeys.ENTER_KEY)) 
         {
             const moveDetla = getMovementDelta(e);
 
             let rowDelta = moveDetla.rowDelta;
             let colDelta = moveDetla.colDelta;
-            let isArrowKey = e.key.startsWith("Arrow");
+            let isArrowKey = e.key.startsWith(ConstantKeys.ARROW_KEY);
 
             if (rowDelta !== 0 || colDelta !== 0) 
             {

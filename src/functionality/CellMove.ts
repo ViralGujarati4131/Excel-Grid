@@ -3,6 +3,7 @@ import type { InteractionHandler } from "../eventsHandler/InteractionHandler.js"
 import type { CanvasRenderer } from "../rendering/CanvasRenderer.js";
 import type { Viewport } from "../rendering/Viewport.js";
 import { adjustViewportToCell } from "../utils/AdjustViewportToCell.js";
+import { ColumnAttributes, RowAttributes } from "../utils/Constants.js";
 import { getNextCellWithinRange } from "../utils/GetNextCellInRange.js";
 
 export class CellMove
@@ -26,11 +27,11 @@ export class CellMove
 
         // after move if it come near to end at scroll expand row
         if (newRowIdx >= this.workbook.rows.length - 5) 
-            this.workbook.expandRows(50);
+            this.workbook.expandRows(RowAttributes.Expand_50_Row);
 
         // after move if it come near to end at scroll expand column
         if (newColIdx >= this.workbook.columns.length - 3) 
-            this.workbook.expandColumns(10);
+            this.workbook.expandColumns(ColumnAttributes.Expand_30_Column);
 
         // to handle minus index condition
         newRowIdx = Math.max(0, Math.min(newRowIdx, this.workbook.rows.length - 1));

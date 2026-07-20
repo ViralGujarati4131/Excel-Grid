@@ -1,6 +1,6 @@
 [
     {
-        "billNo" : "VR101",
+        "id" : "VR101",
         "category" : "Electric",
         "product": "Refrigerator",
         "company": "LG",
@@ -9,7 +9,7 @@
         "paymentMode": "Cash"
     },
     {
-        "billNo" : "VR102",
+        "id" : "VR102",
         "category" : "NonElectric",
         "product": "Bottle",
         "company": "Cello",
@@ -18,7 +18,7 @@
         "paymentMode": "Card"
     },
     {
-        "billNo" : "VR103",
+        "id" : "VR103",
         "category" : "Electric",
         "product": "AC",
         "company": "Hitachi",
@@ -27,7 +27,7 @@
         "paymentMode": "Cash"
     },
     {
-        "billNo" : "VR104",
+        "id" : "VR104",
         "category" : "PersonalCare",
         "product": "Hair Dryer & multi styler",
         "company": "Philips",
@@ -36,7 +36,7 @@
         "paymentMode": "Cash"
     },
     {
-        "billNo" : "VR105",
+        "id" : "VR105",
         "category" : "Gift",
         "product": "Photoframe",
         "company": "Agaro",

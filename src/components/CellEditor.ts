@@ -1,6 +1,7 @@
 import { Cell } from "../core/Cell.js";
 import { CommandHistory } from "../undoRedo/CommandHistory.js";
 import { EditTextCommand } from "../undoRedo/commands/EditTextCommand.js";
+import { CellMode, ConstantKeys } from "../utils/Constants.js";
 
 export class CellEditor 
 {
@@ -22,7 +23,7 @@ export class CellEditor
         });
 
         this.element.addEventListener("keydown", (e: KeyboardEvent) => {
-            if (e.ctrlKey && e.key.toLowerCase() === "z") {
+            if (e.ctrlKey && e.key.toLowerCase() === ConstantKeys.Z_KEY) {
                 e.stopPropagation(); 
                 e.preventDefault();
                 this.localInputHistory.undo();
@@ -30,7 +31,7 @@ export class CellEditor
                 return;
             }
 
-            if (e.ctrlKey && e.key.toLowerCase() === "y") {
+            if (e.ctrlKey && e.key.toLowerCase() === ConstantKeys.Y_KEY) {
                 e.stopPropagation(); 
                 e.preventDefault();
                 this.localInputHistory.redo();
@@ -41,7 +42,7 @@ export class CellEditor
     }
 
     // this show the input box when user try to write in cell
-    public show(cell: Cell, x: number, y: number, width: number, height: number, mode: "override" | "append"): void 
+    public show(cell: Cell, x: number, y: number, width: number, height: number, mode: string): void 
     {
         this.element.style.left = `${x}px`;
         this.element.style.top = `${y}px`;
@@ -51,7 +52,7 @@ export class CellEditor
 
         this.initialValueBeforeEditing = cell.text;
 
-        if (mode === "override") 
+        if (mode === CellMode.OVERRIDE) 
         {
             this.element.value = "";
         } 

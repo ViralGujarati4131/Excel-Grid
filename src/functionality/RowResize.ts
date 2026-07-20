@@ -3,6 +3,7 @@ import type { Workbook } from "../core/Workbook.js";
 import type { InteractionHandler } from "../eventsHandler/InteractionHandler.js";
 import type { CommandHistory } from "../undoRedo/CommandHistory.js";
 import { ResizeRowCommand } from "../undoRedo/commands/ResizeRowCommand.js";
+import { RowAttributes, RowHoverInfoCheck, RowResizeCheck } from "../utils/Constants.js";
 
 export class RowResize
 {
@@ -15,15 +16,15 @@ export class RowResize
 
     public SetRowResizeState(e: MouseEvent,handler: InteractionHandler)
     {
-        if (!handler["rowHoverResizeInfo"])
+        if (!handler[RowHoverInfoCheck])
             return;
     
         // row resize
-        const row = this.workbook.rows[handler["rowHoverResizeInfo"].index];
+        const row = this.workbook.rows[handler[RowHoverInfoCheck].index];
         if (row) 
         {
-            handler["rowResizeState"] = {
-                index: handler["rowHoverResizeInfo"].index,
+            handler[RowResizeCheck] = {
+                index: handler[RowHoverInfoCheck].index,
                 startPos: e.clientY,
                 startSize: row.height
             }
@@ -33,26 +34,26 @@ export class RowResize
     
     public StoreRowResizeValue(e: MouseEvent,handler: InteractionHandler)
     {
-        if(!handler["rowResizeState"])
+        if(!handler[RowResizeCheck])
             return;
 
-        const deltaY = e.clientY - handler["rowResizeState"].startPos;
-        const row = this.workbook.rows[handler["rowResizeState"].index];
+        const deltaY = e.clientY - handler[RowResizeCheck].startPos;
+        const row = this.workbook.rows[handler[RowResizeCheck].index];
 
         if (row) 
-            row.height = Math.max(15, handler["rowResizeState"].startSize + deltaY);
+            row.height = Math.max(RowAttributes.MinHeight, handler[RowResizeCheck].startSize + deltaY);
         handler.updateView();
     }
 
     public SaveRowResizeValue(handler: InteractionHandler)
     {
-        if(!handler["rowResizeState"])
+        if(!handler[RowResizeCheck])
             return;
 
         // row resize
-        const row = this.workbook.rows[handler["rowResizeState"].index];
+        const row = this.workbook.rows[handler[RowResizeCheck].index];
 
-        if (row && row.height !== handler["rowResizeState"].startSize) 
-            this.history.add(new ResizeRowCommand(row, row.height, handler["rowResizeState"].startSize));
+        if (row && row.height !== handler[RowResizeCheck].startSize) 
+            this.history.add(new ResizeRowCommand(row, row.height, handler[RowResizeCheck].startSize));
     }
 }

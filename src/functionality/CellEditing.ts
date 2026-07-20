@@ -5,6 +5,7 @@ import type { CanvasRenderer } from "../rendering/CanvasRenderer.js";
 import type { Viewport } from "../rendering/Viewport.js";
 import type { CommandHistory } from "../undoRedo/CommandHistory.js";
 import { WriteTextCommand } from "../undoRedo/commands/WriteTextCommand.js";
+import { CellMode, ConstantKeys } from "../utils/Constants.js";
 
 export class CellEditing
 {
@@ -84,8 +85,8 @@ export class CellEditing
                 {
                     const cellX = rect.left + this.viewport.headerWidth + this.renderer.getColX(this.workbook, colIndex) - this.viewport.scrollX;
                     const cellY = rect.top + this.viewport.headerHeight + this.renderer.getRowY(this.workbook, rowIndex) - this.viewport.scrollY;
-                    this.editor.show(cell, cellX, cellY, col.width, row.height, cell.text ? "append" : "override");
-                    if(e instanceof KeyboardEvent && e.key != "F2")
+                    this.editor.show(cell, cellX, cellY, col.width, row.height, cell.text ? CellMode.APPEND : CellMode.OVERRIDE);
+                    if(e instanceof KeyboardEvent && e.key != ConstantKeys.F2_KEY)
                     {
                         this.editor.setValue(e.key);
                         e.preventDefault();
@@ -108,19 +109,22 @@ export class CellEditing
                 const row = this.workbook.rows[rIdx];
                 const col = this.workbook.columns[cIdx];
 
-                const cell = this.workbook.getCell(row!.id, col!.name);
-
-                if (cell) 
+                if(row && col)
                 {
-                    const oldText = cell.text;
-                    const newText = this.editor.getValue();
-                    
-                    // store the written text as a command for maintain undo redo state
-                    if (oldText !== newText) 
+                    const cell = this.workbook.getCell(row.id, col.name);
+
+                    if (cell) 
                     {
-                        const cmd = new WriteTextCommand(cell, newText, oldText, rIdx, cIdx);
-                        cmd.execute();
-                        this.history.add(cmd);
+                        const oldText = cell.text;
+                        const newText = this.editor.getValue();
+                        
+                        // store the written text as a command for maintain undo redo state
+                        if (oldText !== newText) 
+                        {
+                            const cmd = new WriteTextCommand(cell, newText, oldText, rIdx, cIdx);
+                            cmd.execute();
+                            this.history.add(cmd);
+                        }
                     }
                 }
             }

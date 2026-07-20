@@ -39,7 +39,8 @@ export class FileUpload
                 headerName.push("id")
                 for(const header in parsedData[0])
                 {
-                    headerName.push(header)
+                    if(header !== "id")
+                        headerName.push(header)
                 }                
                 
                 const finalRecordSet: unknown[] = Array.isArray(parsedData) ? parsedData : [parsedData];                

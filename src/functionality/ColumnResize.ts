@@ -3,6 +3,7 @@ import type { Workbook } from "../core/Workbook.js";
 import type { InteractionHandler } from "../eventsHandler/InteractionHandler.js";
 import type { CommandHistory } from "../undoRedo/CommandHistory.js";
 import { ResizeColumnCommand } from "../undoRedo/commands/ResizeColumnCommand.js";
+import { ColumnAttributes, ColumnHoverInfoCheck, ColumnResizeCheck } from "../utils/Constants.js";
 
 export class ColumnResize
 {
@@ -15,14 +16,14 @@ export class ColumnResize
 
     public SetColumnResizeState(e: MouseEvent,handler: InteractionHandler)
     {
-        if (!handler["columnHoverResizeInfo"])
+        if (!handler[ColumnHoverInfoCheck])
             return;
     
-        const col = this.workbook.columns[handler["columnHoverResizeInfo"].index];
+        const col = this.workbook.columns[handler[ColumnHoverInfoCheck].index];
         if (col) 
         {
-            handler["columnResizeState"] = {
-                index: handler["columnHoverResizeInfo"].index,
+            handler[ColumnResizeCheck] = {
+                index: handler[ColumnHoverInfoCheck].index,
                 startPos: e.clientX,
                 startSize: col.width
             };
@@ -32,25 +33,25 @@ export class ColumnResize
     
     public StoreColumnResizeValue(e: MouseEvent,handler: InteractionHandler)
     {
-         if(!handler["columnResizeState"])
+         if(!handler[ColumnResizeCheck])
             return;
   
-        const deltaX = e.clientX - handler["columnResizeState"].startPos;
-        const col = this.workbook.columns[handler["columnResizeState"].index];
+        const deltaX = e.clientX - handler[ColumnResizeCheck].startPos;
+        const col = this.workbook.columns[handler[ColumnResizeCheck].index];
 
         if (col) 
-            col.width = Math.max(30, handler["columnResizeState"].startSize + deltaX);
+            col.width = Math.max(ColumnAttributes.MinWidth, handler["columnResizeState"].startSize + deltaX);
         handler.updateView();
     }
 
     public SaveColumnResizeValue(handler: InteractionHandler)
     {
-        if(!handler["columnResizeState"])
+        if(!handler[ColumnResizeCheck])
             return;
 
-        const col = this.workbook.columns[handler["columnResizeState"].index];
+        const col = this.workbook.columns[handler[ColumnResizeCheck].index];
 
-        if (col && col.width !== handler["columnResizeState"].startSize) 
-            this.history.add(new ResizeColumnCommand(col, col.width, handler["columnResizeState"].startSize));
+        if (col && col.width !== handler[ColumnResizeCheck].startSize) 
+            this.history.add(new ResizeColumnCommand(col, col.width, handler[ColumnResizeCheck].startSize));
     }
 }

@@ -3,6 +3,7 @@ import { Viewport } from "./rendering/Viewport.js";
 import { CanvasRenderer } from "./rendering/CanvasRenderer.js";
 import { CellEditor } from "./components/CellEditor.js";
 import { InteractionHandler } from "./eventsHandler/InteractionHandler.js";
+import { ColumnAttributes, RibbonHeight, RowAttributes } from "./utils/Constants.js";
 
 window.addEventListener("DOMContentLoaded", () => 
 {
@@ -15,7 +16,7 @@ window.addEventListener("DOMContentLoaded", () =>
     }
 
     // create the initial stage row, column and cells
-    const workbook = new Workbook(100, 60);
+    const workbook = new Workbook(RowAttributes.InitialRows, ColumnAttributes.InitialColumns);
 
     // set the scrollX, scrollY value at initial
     const viewport = new Viewport();
@@ -31,7 +32,7 @@ window.addEventListener("DOMContentLoaded", () =>
     new InteractionHandler(workbook, viewport, renderer, editor);
 
     // resize use to set the rendering size according to the size of window
-    renderer.resize(window.innerWidth, window.innerHeight - 40);
+    renderer.resize(window.innerWidth, window.innerHeight - RibbonHeight);
 
     // this will render the entire grid
     renderer.render(workbook, viewport, null);

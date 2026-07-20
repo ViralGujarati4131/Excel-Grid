@@ -1,6 +1,7 @@
 import type { Workbook } from "../core/Workbook.js";
 import type { CanvasRenderer } from "../rendering/CanvasRenderer.js";
 import type { Viewport } from "../rendering/Viewport.js";
+import { DefaultCursorType, RowAttributes } from "./Constants.js";
 
 export function CheckRowHoverEdge(x: number, y: number, viewport: Viewport,renderer: CanvasRenderer,workbook: Workbook,canvas: HTMLCanvasElement): { index: number } | null 
 {
@@ -14,11 +15,11 @@ export function CheckRowHoverEdge(x: number, y: number, viewport: Viewport,rende
 
             if (Math.abs(y - edgeY) <= tolerance) 
             {
-                canvas.style.cursor = "row-resize";
+                canvas.style.cursor = RowAttributes.CursorType;
                 return { index: r };
             }
         }
     }
-    canvas.style.cursor = "default";
+    canvas.style.cursor = DefaultCursorType;
     return null;
 }

@@ -4,6 +4,7 @@ import type { InteractionHandler } from "../eventsHandler/InteractionHandler.js"
 import type { CanvasRenderer } from "../rendering/CanvasRenderer.js";
 import type { Viewport } from "../rendering/Viewport.js";
 import { adjustViewportToCell } from "../utils/AdjustViewportToCell.js";
+import { ColumnAttributes, RowAttributes } from "../utils/Constants.js";
 import { getCellByCoordination } from "../utils/GetCellByCoordination.js";
 
 export class CellRangeSelection
@@ -88,15 +89,15 @@ export class CellRangeSelection
         }
 
         let newEndRowIdx = handler.selection.endRowIdx + rowDelta;
-        let newEndColIdx = handler.selection.endColIdx + colDelta;
+        let newEndColIdx = handler.selection.endColIdx + colDelta; 
 
         // while select the column or cell if near to end row or column expand row and column
-        if (newEndColIdx >= this.workbook.columns.length - 5) 
-            this.workbook.expandColumns(10);
+        if (rowDelta == 0 && newEndColIdx >= this.workbook.columns.length - 5) 
+            this.workbook.expandColumns(ColumnAttributes.Expand_30_Column);
 
         // while select the row or cell if near to end row or column expand row and column
-        if (newEndRowIdx >= this.workbook.rows.length - 5) 
-            this.workbook.expandRows(50);
+        if (colDelta == 0 && newEndRowIdx >= this.workbook.rows.length - 5) 
+            this.workbook.expandRows(RowAttributes.Expand_50_Row);
 
         newEndRowIdx = Math.max(0, Math.min(newEndRowIdx, this.workbook.rows.length - 1));
         newEndColIdx = Math.max(0, Math.min(newEndColIdx, this.workbook.columns.length - 1));
@@ -110,47 +111,44 @@ export class CellRangeSelection
 
     public rangeSelectionUsingPointer(e: PointerEvent, handler: InteractionHandler, x: number, y: number, width: number, height: number)
     {
-        if (handler.isSelectingRange && handler.selection) 
+        if (handler.isSelectingRange && handler.selection && handler.selection.endColIdx !== undefined && handler.selection.endRowIdx !== undefined && handler.selection.startRowIdx !== undefined && handler.selection.startColIdx !== undefined) 
         {
             const dragType = handler.dragSelectionType;
 
-            if (dragType !== "row" && handler.selection.endColIdx! >= this.workbook.columns.length - 5) {
-                this.workbook.expandColumns(10);
+            if (dragType !== "row" && handler.selection.endColIdx >= this.workbook.columns.length - 5) {
+                this.workbook.expandColumns(ColumnAttributes.Expand_30_Column);
             }
             
-            if (dragType !== "column" && handler.selection.endRowIdx! >= this.workbook.rows.length - 5) {
-                this.workbook.expandRows(50);
+            if (dragType !== "column" && handler.selection.endRowIdx >= this.workbook.rows.length - 5) {
+                this.workbook.expandRows(RowAttributes.Expand_50_Row);
             }
 
-            const edgeMarginForColumn = 80;
-            const edgeMarginForRow = 50;
-
-            if (x >= width - edgeMarginForColumn) 
+            if (x >= width - ColumnAttributes.EdgeMargin) 
             {
-                this.viewport.scrollX += 50;
+                this.viewport.scrollX += ColumnAttributes.EdgeMargin;
             } 
-            else if (x <= this.viewport.headerWidth + edgeMarginForColumn && this.viewport.scrollX > 0) 
+            else if (x <= this.viewport.headerWidth + ColumnAttributes.EdgeMargin && this.viewport.scrollX > 0) 
             {
-                this.viewport.scrollX = Math.max(0, this.viewport.scrollX - 50);
+                this.viewport.scrollX = Math.max(0, this.viewport.scrollX - ColumnAttributes.EdgeMargin);
             }
 
-            if (y >= height - edgeMarginForRow) 
+            if (y >= height - RowAttributes.EdgeMargin) 
             {
-                this.viewport.scrollY += 15;
+                this.viewport.scrollY += RowAttributes.EdgeMargin;
             } 
-            else if (y <= this.viewport.headerHeight + edgeMarginForRow && this.viewport.scrollY > 0) 
+            else if (y <= this.viewport.headerHeight + RowAttributes.EdgeMargin && this.viewport.scrollY > 0) 
             {
-                this.viewport.scrollY = Math.max(0, this.viewport.scrollY - 30);
+                this.viewport.scrollY = Math.max(0, this.viewport.scrollY - RowAttributes.EdgeMargin);
             }
 
             const indices = getCellByCoordination(x, y, this.viewport, this.workbook);
             if (indices) 
             {
                 if (handler.selection.activeRowIdx === undefined) {
-                    handler.selection.activeRowIdx = handler.selection.startRowIdx!;
+                    handler.selection.activeRowIdx = handler.selection.startRowIdx;
                 }
                 if (handler.selection.activeColIdx === undefined) {
-                    handler.selection.activeColIdx = handler.selection.startColIdx!;
+                    handler.selection.activeColIdx = handler.selection.startColIdx;
                 }   
 
                 if (dragType === "column" && indices.colIdx !== -1) 
@@ -168,7 +166,7 @@ export class CellRangeSelection
                     handler.selection.endRowIdx = indices.rowIdx;
                     handler.selection.endColIdx = indices.colIdx;
                 }
-                adjustViewportToCell(handler.selection.endRowIdx!, handler.selection.endColIdx!, this.renderer, this.workbook, this.viewport);
+                adjustViewportToCell(handler.selection.endRowIdx, handler.selection.endColIdx, this.renderer, this.workbook, this.viewport);
                 handler.updateView();
             }
         }
