@@ -16,67 +16,6 @@ export class CellRangeSelection
         private editor: CellEditor
     ){}
 
-    public columnSelection(indices: {rowIdx: number, colIdx: number}, handler: InteractionHandler)
-    {
-        if (indices.colIdx !== -1) 
-        {
-            const col = this.workbook.columns[indices.colIdx];
-            if (col) 
-            {
-                handler.dragSelectionType = "column";
-                handler.selection = {
-                    startColIdx: indices.colIdx,
-                    endColIdx: indices.colIdx,
-                    startRowIdx: 0,
-                    endRowIdx: this.workbook.rows.length - 1,
-                    activeRowIdx: 0, 
-                    activeColIdx: indices.colIdx
-                };
-            }
-        }
-        handler.updateView();
-    }
-
-    public rowSelection(indices: {rowIdx: number, colIdx: number}, handler: InteractionHandler)
-    {
-        if (indices.rowIdx !== -1) 
-        {
-            const row = this.workbook.rows[indices.rowIdx];
-            if (row) 
-            {
-                handler.dragSelectionType = "row";
-                handler.selection = {
-                    startRowIdx: indices.rowIdx,
-                    endRowIdx: indices.rowIdx,
-                    startColIdx: 0,
-                    endColIdx: this.workbook.columns.length - 1,
-                    activeRowIdx: indices.rowIdx, 
-                    activeColIdx: 0 
-                };
-            }
-        }
-        handler.updateView();
-    }
-
-    public cellSelection(indices: {rowIdx: number, colIdx: number}, handler: InteractionHandler)
-    {
-        const row = this.workbook.rows[indices.rowIdx];
-        const col = this.workbook.columns[indices.colIdx];
-        if (row && col) 
-        {
-            handler.dragSelectionType = "cell";
-            handler.selection = {
-                startRowIdx: indices.rowIdx,
-                startColIdx: indices.colIdx,
-                endRowIdx: indices.rowIdx,
-                endColIdx: indices.colIdx,
-                activeRowIdx: indices.rowIdx,
-                activeColIdx: indices.colIdx
-            };
-        }
-        handler.updateView();
-    }
-
     public rangeSelectionUsingKey(rowDelta: number, colDelta: number, handler: InteractionHandler): void 
     {
         if (!handler.selection || 

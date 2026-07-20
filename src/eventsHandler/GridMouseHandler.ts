@@ -11,6 +11,9 @@ import { CheckColumnHoverEdge } from "../utils/CheckColumnHoverEdge.js";
 import type { RowResize } from "../functionality/RowResize.js";
 import type { ColumnResize } from "../functionality/ColumnResize.js";
 import { ColumnHoverCheck, ColumnHoverInfoCheck, ColumnResizeCheck, Delays, IsSelectRange, RowHoverCheck, RowHoverInfoCheck, RowResizeCheck } from "../utils/Constants.js";
+import type { RowSelection } from "../functionality/RowSelection.js";
+import type { ColumnSelection } from "../functionality/ColumnSelection.js";
+import type { CellSelection } from "../functionality/CellSelection.js";
 
 export class GridMouseHandler 
 {
@@ -23,7 +26,10 @@ export class GridMouseHandler
         private cellEditing: CellEditing,
         private cellRangeSelection: CellRangeSelection,
         private rowResize: RowResize,
-        private columnResize: ColumnResize
+        private columnResize: ColumnResize,
+        private rowSelection: RowSelection,
+        private columnSelection: ColumnSelection,
+        private cellSelection: CellSelection
     ) {}
 
     public handlePointerDown(e: PointerEvent, handler: InteractionHandler): void 
@@ -66,21 +72,21 @@ export class GridMouseHandler
         // is mouse is down for entire cloumn select
         if (y < this.viewport.headerHeight) 
         {
-            this.cellRangeSelection.columnSelection(indices, handler);
+            this.columnSelection.ColumnSelect(indices, handler);
             return;
         }
 
         // is mouse is down for entire row select
         if (x < this.viewport.headerWidth) 
         {
-            this.cellRangeSelection.rowSelection(indices, handler);
+            this.rowSelection.RowSelect(indices, handler);
             return;
         }
 
         // is mouse is down for the cell select
         if (indices.rowIdx !== -1 && indices.colIdx !== -1) 
         {
-            this.cellRangeSelection.cellSelection(indices, handler);
+            this.cellSelection.CellSelect(indices, handler);
         }
     }
 
