@@ -1,6 +1,6 @@
 import type { CellEditor } from "../components/CellEditor.js";
 import type { Workbook } from "../core/Workbook.js";
-import type { InteractionHandler } from "../eventsHandler/InteractionHandler.js";
+import type { InteractionHandler } from "../events/InteractionHandler.js";
 import type { CommandHistory } from "../undoRedo/CommandHistory.js";
 import { ResizeColumnCommand } from "../undoRedo/commands/ResizeColumnCommand.js";
 import { ColumnAttributes, ColumnHoverInfoCheck, ColumnResizeCheck } from "../utils/Constants.js";

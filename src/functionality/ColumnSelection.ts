@@ -1,5 +1,5 @@
 import type { Workbook } from "../core/Workbook.js";
-import type { InteractionHandler } from "../eventsHandler/InteractionHandler.js";
+import type { InteractionHandler } from "../events/InteractionHandler.js";
 
 export class ColumnSelection 
 {

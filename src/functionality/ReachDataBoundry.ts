@@ -1,7 +1,7 @@
 import type { Viewport } from "../rendering/Viewport.js";
 import type { Workbook } from "../core/Workbook.js";
 import type { CanvasRenderer } from "../rendering/CanvasRenderer.js";
-import type { InteractionHandler } from "../eventsHandler/InteractionHandler.js";
+import type { InteractionHandler } from "../events/InteractionHandler.js";
 import { adjustViewportToCell } from "../utils/AdjustViewportToCell.js";
 
 export class ReachDataBoundry
