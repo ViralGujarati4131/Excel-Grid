@@ -1,45 +1,55 @@
+import { RangeSelectionManage } from "./RangeSelectionManage.js";
 import type { SelectionState } from "./States.js";
 
 export function getNextCellWithinRange(selection: SelectionState, rowDelta: number, colDelta: number, maxRows: number, maxCols: number): { rowIdx: number; colIdx: number } 
 {
-    let minR = 0, maxR = maxRows - 1;
-    let minC = 0, maxC = maxCols - 1;
+    const bounds = RangeSelectionManage.normalizeSelection(selection);
 
-    if (selection.startRowIdx !== undefined && selection.endRowIdx !== undefined && selection.startColIdx !== undefined && selection.endColIdx !== undefined) {
-        minR = Math.min(selection.startRowIdx, selection.endRowIdx);
-        maxR = Math.max(selection.startRowIdx, selection.endRowIdx);
-        minC = Math.min(selection.startColIdx, selection.endColIdx);
-        maxC = Math.max(selection.startColIdx, selection.endColIdx);
-    }
+    let currentR = selection.activeRowIdx !== undefined ? selection.activeRowIdx : (selection.startRowIdx ?? bounds.minR);
+    let currentC = selection.activeColIdx !== undefined ? selection.activeColIdx : (selection.startColIdx ?? bounds.minC);
 
-    let currentR = selection.activeRowIdx !== undefined ? selection.activeRowIdx : (selection.startRowIdx ?? minR);
-    let currentC = selection.activeColIdx !== undefined ? selection.activeColIdx : (selection.startColIdx ?? minC);
-
-    if (minC === 0 && maxC === maxCols - 1 && minR === maxR) {
+    if (bounds.minC === 0 && bounds.maxC === maxCols - 1 && bounds.minR === bounds.maxR) 
+    {
         currentC += 1; 
-    } else {
+    } 
+    else 
+    {
         currentR += rowDelta;
         currentC += colDelta;
     }
 
-    if (currentR > maxR) {
-        currentR = minR;   
-        currentC += 1;            
-        if (currentC > maxC) currentC = minC;
-    } else if (currentR < minR) {
-        currentR = maxR;
+    if (currentR > bounds.maxR) 
+    {
+        currentR = bounds.minR;   
+        currentC += 1;       
+
+        if (currentC > bounds.maxC) 
+            currentC = bounds.minC;
+    } 
+    else if (currentR < bounds.minR) 
+    {
+        currentR = bounds.maxR;
         currentC -= 1;
-        if (currentC < minC) currentC = maxC;
+
+        if (currentC < bounds.minC) 
+            currentC = bounds.maxC;
     }
 
-    if (currentC > maxC) {
-        currentC = minC;
+    if (currentC > bounds.maxC) 
+    {
+        currentC = bounds.minC;
         currentR += 1;
-        if (currentR > maxR) currentR = minR;
-    } else if (currentC < minC) {
-        currentC = maxC;
+
+        if (currentR > bounds.maxR) 
+            currentR = bounds.minR;
+    } 
+    else if (currentC < bounds.minC) 
+    {
+        currentC = bounds.maxC;
         currentR -= 1;
-        if (currentR < minR) currentR = maxR;
+
+        if (currentR < bounds.minR) 
+            currentR = bounds.maxR;
     }
 
     return { rowIdx: currentR, colIdx: currentC };

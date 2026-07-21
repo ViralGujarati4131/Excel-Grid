@@ -20,7 +20,6 @@ export class CellEditing
     // render the inputBox on cell
     public ActiveCell(handler: InteractionHandler, e: KeyboardEvent | MouseEvent)
     {
-        // Delete when cell is only select not active
         if (
             !handler.selection ||
             e.ctrlKey || 
@@ -41,7 +40,6 @@ export class CellEditing
                 || e.key == "F10"
                 || e.key == "F11"
                 || e.key == "F12"
-                || e.key == "Backspace"
                 || e.key == "Pause"
                 || e.key == "Home"
                 || e.key == "End"
@@ -89,6 +87,11 @@ export class CellEditing
                     if(e instanceof KeyboardEvent && e.key != ConstantKeys.F2_KEY)
                     {
                         this.editor.setValue(e.key);
+                        e.preventDefault();
+                    }
+                    if(e instanceof KeyboardEvent && e.key === ConstantKeys.BACKSPACE_KEY)
+                    {
+                        this.editor.setValue("");
                         e.preventDefault();
                     }
                 }
@@ -143,6 +146,39 @@ export class CellEditing
             handler.updateView();
             e.preventDefault();
             return;
+        }
+    }
+
+    public DeleteCellData(handler: InteractionHandler)
+    {
+        if(!handler.selection)
+            return;
+
+        const rowIndex = handler.selection.activeRowIdx !== undefined 
+            ? handler.selection.activeRowIdx 
+            : (handler.selection.startRowIdx);
+            
+        const colIndex = handler.selection.activeColIdx !== undefined 
+            ? handler.selection.activeColIdx 
+            : (handler.selection.startColIdx);
+
+        if (colIndex !== undefined && rowIndex !== undefined) 
+        {
+            // get row and column
+            const row = this.workbook.rows[rowIndex];   
+            const col = this.workbook.columns[colIndex];
+            if (row && col) 
+            {
+                // get cell
+                const cell = this.workbook.getCell(row.id, col.name);
+                if (cell) 
+                {
+                    const cmd = new WriteTextCommand(cell, "", cell.text, rowIndex, colIndex);
+                    cmd.execute();
+                    this.history.add(cmd);
+                    cell.text = "";
+                }
+            }
         }
     }
 }

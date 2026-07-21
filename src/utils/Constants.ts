@@ -9,7 +9,13 @@ export const ConstantKeys = {
     F2_KEY: 'F2',
     ESCAPE_KEY: 'Escape',
     ENTER_KEY: 'Enter',
-    ARROW_KEY: 'Arrow'
+    ARROW_KEY: 'Arrow',
+    ARROW_UP_KEY: 'ArrowUp',
+    ARROW_DOWN_KEY: 'ArrowDown',
+    ARROW_LEFT_KEY: 'ArrowLeft',
+    ARROW_RIGHT_KEY: 'ArrowRight',
+    BACKSPACE_KEY: "Backspace",
+    DELETE_KEY: "Delete"
 }
 
 export const RowAttributes = {
@@ -19,8 +25,7 @@ export const RowAttributes = {
     EdgeMargin: 50,
     MinHeight: 15,
     CursorType: "row-resize",
-    InitialRows: 100,
-    RowHoverCheck: "rowHoverResizeInfo"
+    InitialRows: 100
 }
 
 export const ColumnAttributes = {

@@ -8,7 +8,8 @@ import { CanvasUndoRedo } from "../functionality/CanvasUndoRedo.js";
 import { getMovementDelta } from "../utils/GetAerrowKey.js";
 import { ConstantKeys } from "../utils/Constants.js";
 
-export class GridKeyboardHandler {
+export class GridKeyboardHandler 
+{
 
     constructor(
         private cellEditing: CellEditing,
@@ -21,6 +22,14 @@ export class GridKeyboardHandler {
 
     public handleGlobalKeyDown(e: KeyboardEvent, handler: InteractionHandler): void 
     {
+        // to delete cell data
+        if(e.key === ConstantKeys.DELETE_KEY)
+        {
+            this.cellEditing.DeleteCellData(handler);
+            handler.updateView();
+            return;
+        }
+
         // to edit the existing text and to edit new cell
         if(e.key === ConstantKeys.F2_KEY)
         {
@@ -54,7 +63,7 @@ export class GridKeyboardHandler {
         if(this.editor.getElement().style.display !== "none")
             return;
 
-        // Check if selection is broad/multicell by comparing bounds instead of selection.type string literal
+        // Check if selection is multicell 
         const isMultiCell = handler.selection && 
             (handler.selection.startRowIdx !== handler.selection.endRowIdx || 
              handler.selection.startColIdx !== handler.selection.endColIdx);

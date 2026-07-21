@@ -19,16 +19,12 @@ import { InputKeyboardHandler } from "./InputKeyboardHandler.js";
 import { RowResize } from "../functionality/RowResize.js";
 import { ColumnResize } from "../functionality/ColumnResize.js";
 import type { ColumnHoverResizeInfo, ColumnResizeState, RowHoverResizeInfo, RowResizeState, SelectionState } from "../utils/States.js";
-import { RowSelection } from "../functionality/RowSelection.js";
-import { ColumnSelection } from "../functionality/ColumnSelection.js";
-import { CellSelection } from "../functionality/CellSelection.js";
 
 export class InteractionHandler 
 {
     public selection: SelectionState | null = null;
     
     public dragSelectionType: "cell" | "row" | "column" = "cell";
-    public isSelectingRange = false;
 
     private rowHoverResizeInfo: RowHoverResizeInfo | null = null;
     private rowResizeState: RowResizeState | null = null;
@@ -53,9 +49,6 @@ export class InteractionHandler
     private fileUpload: FileUpload;
     private rowResize: RowResize;
     private columnResize: ColumnResize;
-    private rowSelection: RowSelection;
-    private columnSelection: ColumnSelection;
-    private cellSelection: CellSelection;
     
     // event handlers
     private fileInputHandler: FileInputHandler;
@@ -81,9 +74,6 @@ export class InteractionHandler
         this.fileUpload = new FileUpload(workbook, viewport, this.domSpinner);
         this.rowResize = new RowResize(workbook, this.history, editor);
         this.columnResize = new ColumnResize(workbook, this.history, editor);
-        this.rowSelection = new RowSelection(workbook);
-        this.columnSelection = new ColumnSelection(workbook);
-        this.cellSelection = new CellSelection(workbook);
 
         // event handlers initialize
         this.fileInputHandler = new FileInputHandler(this.fileUpload);
@@ -95,7 +85,7 @@ export class InteractionHandler
         );
 
         this.mouseHandler = new GridMouseHandler(
-            this.workbook, this.viewport, this.renderer, this.editor, this.cellEditing, this.cellRangeSelection, this.rowResize, this.columnResize,this.rowSelection,this.columnSelection,this.cellSelection
+            this.workbook, this.viewport, this.renderer, this.editor, this.cellEditing, this.cellRangeSelection, this.rowResize, this.columnResize
         );
         
         this.windowHandler = new GridWindowHandler(

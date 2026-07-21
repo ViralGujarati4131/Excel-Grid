@@ -3,6 +3,7 @@ import { Workbook } from "../core/Workbook.js";
 import { Viewport } from "./Viewport.js";
 import type { SelectionState } from "../utils/States.js";
 import { ColumnAttributes, RowAttributes } from "../utils/Constants.js";
+import { RangeSelectionManage } from "../utils/RangeSelectionManage.js";
 
 export class CanvasRenderer implements IRenderer 
 {
@@ -227,12 +228,9 @@ export class CanvasRenderer implements IRenderer
 
                 if (selection && selection.startRowIdx !== undefined && selection.endRowIdx !== undefined && selection.startColIdx !== undefined && selection.endColIdx !== undefined) 
                 {
-                    const minR = Math.min(selection.startRowIdx, selection.endRowIdx);
-                    const maxR = Math.max(selection.startRowIdx, selection.endRowIdx);
-                    const minC = Math.min(selection.startColIdx, selection.endColIdx);
-                    const maxC = Math.max(selection.startColIdx, selection.endColIdx);
+                    const bounds = RangeSelectionManage.normalizeSelection(selection);
 
-                    if (r >= minR && r <= maxR && c >= minC && c <= maxC) 
+                    if (r >= bounds.minR && r <= bounds.maxR && c >= bounds.minC && c <= bounds.maxC) 
                     {
                         const currentActiveR = selection.activeRowIdx !== undefined ? selection.activeRowIdx : selection.startRowIdx;
                         const currentActiveC = selection.activeColIdx !== undefined ? selection.activeColIdx : selection.startColIdx;
@@ -268,23 +266,20 @@ export class CanvasRenderer implements IRenderer
 
         const ctx = this.ctx;
         
-        const minR = Math.min(selection.startRowIdx, selection.endRowIdx);
-        const maxR = Math.max(selection.startRowIdx, selection.endRowIdx);
-        const minC = Math.min(selection.startColIdx, selection.endColIdx);
-        const maxC = Math.max(selection.startColIdx, selection.endColIdx);
+        const bounds = RangeSelectionManage.normalizeSelection(selection);
 
-        const startX = viewport.headerWidth + this.getColX(workbook, minC) - viewport.scrollX;
-        const startY = viewport.headerHeight + this.getRowY(workbook, minR) - viewport.scrollY;
+        const startX = viewport.headerWidth + this.getColX(workbook, bounds.minC) - viewport.scrollX;
+        const startY = viewport.headerHeight + this.getRowY(workbook, bounds.minR) - viewport.scrollY;
 
         let totalWidth = 0;
-        for (let c = minC; c <= maxC; c++) 
+        for (let c = bounds.minC; c <= bounds.maxC; c++) 
         {
             const col = workbook.columns[c];
             totalWidth += col ? col.width : ColumnAttributes.DefaultWidth;
         }
 
         let totalHeight = 0;
-        for (let r = minR; r <= maxR; r++) 
+        for (let r = bounds.minR; r <= bounds.maxR; r++) 
         {
             const row = workbook.rows[r];
             totalHeight += row ? row.height : RowAttributes.DefaultHeight;

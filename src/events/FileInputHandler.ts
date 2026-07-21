@@ -1,7 +1,8 @@
 import type { FileUpload } from "../functionality/FileUpload.js";
 import type { InteractionHandler } from "./InteractionHandler.js";
 
-export class FileInputHandler {
+export class FileInputHandler 
+{
     constructor(
         private fileUpload: FileUpload
     ) {}

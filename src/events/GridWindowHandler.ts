@@ -3,8 +3,8 @@ import { CanvasScroll } from "../functionality/CanvasScroll.js";
 import type { InteractionHandler } from "./InteractionHandler.js";
 import { Delays, RibbonHeight } from "../utils/Constants.js";
 
-export class GridWindowHandler {
-    
+export class GridWindowHandler 
+{
     private lastMoveTime = 0;
     constructor(
         private canvasScroll: CanvasScroll,

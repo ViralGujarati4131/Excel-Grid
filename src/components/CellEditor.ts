@@ -24,7 +24,6 @@ export class CellEditor
 
         this.element.addEventListener("keydown", (e: KeyboardEvent) => {
             if (e.ctrlKey && e.key.toLowerCase() === ConstantKeys.Z_KEY) {
-                e.stopPropagation(); 
                 e.preventDefault();
                 this.localInputHistory.undo();
                 this.lastValueSnapshot = this.element.value;
@@ -32,7 +31,6 @@ export class CellEditor
             }
 
             if (e.ctrlKey && e.key.toLowerCase() === ConstantKeys.Y_KEY) {
-                e.stopPropagation(); 
                 e.preventDefault();
                 this.localInputHistory.redo();
                 this.lastValueSnapshot = this.element.value; 

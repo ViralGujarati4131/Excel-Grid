@@ -1,20 +1,22 @@
+import { ConstantKeys } from "./Constants.js";
+
 export function getMovementDelta(e: KeyboardEvent) 
 {
     switch (e.key) {
 
-        case "ArrowUp":
+        case ConstantKeys.ARROW_UP_KEY:
             return { rowDelta: -1, colDelta: 0 };
 
-        case "ArrowDown":
+        case ConstantKeys.ARROW_DOWN_KEY:
             return { rowDelta: 1, colDelta: 0 };
 
-        case "ArrowLeft":
+        case ConstantKeys.ARROW_LEFT_KEY:
             return { rowDelta: 0, colDelta: -1 };
 
-        case "ArrowRight":
+        case ConstantKeys.ARROW_RIGHT_KEY:
             return { rowDelta: 0, colDelta: 1 };
 
-        case "Enter":
+        case ConstantKeys.ENTER_KEY:
             return { rowDelta: 1, colDelta: 0 };
             
         default:

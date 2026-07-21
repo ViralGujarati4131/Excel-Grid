@@ -9,6 +9,7 @@ export class RowResizeHandler implements ISubEvents
 
     public hitCheck(e: PointerEvent, x: number, y: number, indices: { rowIdx: number; colIdx: number } | null, handler: InteractionHandler): boolean 
     {
+        // check if mouse down is for row resizing 
         return Boolean(handler[RowHoverCheck]);
     }
 
