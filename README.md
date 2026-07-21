@@ -139,6 +139,13 @@ Then open `index.html` with **Live Server** in VS Code.
 │   │   ├── CanvasRenderer.ts
 │   │   ├── IRenderer.ts
 │   │   └── Viewport.ts
+│   ├── subEvents
+│   │   ├── CellSelectionHandler.ts
+│   │   ├── ColumnResizeHandler.ts
+│   │   └── ColumnSelectionHandler.ts
+│   │   ├── RowResizeHandler.ts
+│   │   ├── RowSelectionHandler.ts
+│   │   └── Viewport.ts
 │   ├── undoRedo
 │   │   ├── CommandHistory.ts
 │   │   ├── ICommand.ts
@@ -151,6 +158,7 @@ Then open `index.html` with **Live Server** in VS Code.
 │       ├── AdjustViewportToCell.ts
 │       ├── CheckColumnHoverEdge.ts
 │       ├── CheckRowHoverEdge.ts
+│       ├── Constants.ts
 │       ├── GetAerrowKey.ts
 │       ├── GetCellByCoordination.ts
 │       └── GetNextCellInRange.ts

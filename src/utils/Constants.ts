@@ -22,7 +22,6 @@ export const RowAttributes = {
     DefaultHeight: 30,
     MaxRows: 1_00_000,
     Expand_50_Row: 50,
-    EdgeMargin: 50,
     MinHeight: 15,
     CursorType: "row-resize",
     InitialRows: 100
@@ -32,7 +31,6 @@ export const ColumnAttributes = {
     DefaultWidth: 100,
     MaxColumns: 500,
     Expand_30_Column: 30,
-    EdgeMargin: 80,
     MinWidth: 30,
     CursorType: "col-resize",
     InitialColumns: 60

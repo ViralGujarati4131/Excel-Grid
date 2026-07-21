@@ -123,31 +123,15 @@ export class CellRangeSelection
                 this.workbook.expandRows(RowAttributes.Expand_50_Row);
             }
 
-            if (x >= width - ColumnAttributes.EdgeMargin) 
-            {
-                this.viewport.scrollX += ColumnAttributes.EdgeMargin;
-            } 
-            else if (x <= this.viewport.headerWidth + ColumnAttributes.EdgeMargin && this.viewport.scrollX > 0) 
-            {
-                this.viewport.scrollX = Math.max(0, this.viewport.scrollX - ColumnAttributes.EdgeMargin);
-            }
-
-            if (y >= height - RowAttributes.EdgeMargin) 
-            {
-                this.viewport.scrollY += RowAttributes.EdgeMargin;
-            } 
-            else if (y <= this.viewport.headerHeight + RowAttributes.EdgeMargin && this.viewport.scrollY > 0) 
-            {
-                this.viewport.scrollY = Math.max(0, this.viewport.scrollY - RowAttributes.EdgeMargin);
-            }
-
             const indices = getCellByCoordination(x, y, this.viewport, this.workbook);
             if (indices) 
             {
-                if (handler.selection.activeRowIdx === undefined) {
+                if (handler.selection.activeRowIdx === undefined) 
+                {
                     handler.selection.activeRowIdx = handler.selection.startRowIdx;
                 }
-                if (handler.selection.activeColIdx === undefined) {
+                if (handler.selection.activeColIdx === undefined) 
+                {
                     handler.selection.activeColIdx = handler.selection.startColIdx;
                 }   
 

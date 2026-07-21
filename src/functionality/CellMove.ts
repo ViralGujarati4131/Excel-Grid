@@ -20,7 +20,7 @@ export class CellMove
         // if nothing is selection return
         if (!handler.selection || handler.selection.startRowIdx === undefined || handler.selection.startColIdx === undefined) 
             return;
-        
+
         // set new row column id
         let newRowIdx = handler.selection.startRowIdx + rowDelta;
         let newColIdx = handler.selection.startColIdx + colDelta;
@@ -62,9 +62,7 @@ export class CellMove
         if (!handler.selection) 
             return;
 
-        const nextCell = getNextCellWithinRange(
-            handler.selection, 1, 0, handler.workbook.rows.length, handler.workbook.columns.length
-        );
+        const nextCell = getNextCellWithinRange(handler.selection);
         
         handler.selection.activeRowIdx = nextCell.rowIdx;
         handler.selection.activeColIdx = nextCell.colIdx;
